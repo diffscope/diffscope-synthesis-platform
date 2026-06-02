@@ -16,29 +16,29 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>. *
  **************************************************************************/
 
-package server
+#ifndef DSSP_TYPES_H
+#define DSSP_TYPES_H
 
-import (
-	"fmt"
+#include "native.h"
 
-	"github.com/gin-contrib/gzip"
-	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
-)
+#include <string>
+#include <vector>
 
-func StartRouter() error {
-	router := gin.Default()
-	router.Use(gzip.Gzip(gzip.DefaultCompression))
+struct Lyric {
+	std::string text;
+	std::string language;
+};
 
-	router.GET("/api/info", GetApplicationInfo)
-	router.POST("/pronunciation", PostPronunciation)
+struct Pronunciation {
+	std::string text;
+	std::vector<std::string> candidates;
+	bool isError;
+};
 
-	host := viper.GetString("host")
-	port := viper.GetInt("port")
+using Lyrics = std::vector<Lyric>;
+using Pronunciations = std::vector<Pronunciation>;
 
-	return router.Run(fmt.Sprintf("%s:%d", host, port))
-}
+Lyrics *getLyrics(DSSP_Lyrics lyrics);
+Pronunciations *getPronunciations(DSSP_Pronunciations pronunciations);
 
-func StartServer() error {
-	return StartRouter()
-}
+#endif // DSSP_TYPES_H

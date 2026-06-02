@@ -16,29 +16,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>. *
  **************************************************************************/
 
-package server
+#include "types.h"
 
-import (
-	"fmt"
+#include <memory>
 
-	"github.com/gin-contrib/gzip"
-	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
-)
-
-func StartRouter() error {
-	router := gin.Default()
-	router.Use(gzip.Gzip(gzip.DefaultCompression))
-
-	router.GET("/api/info", GetApplicationInfo)
-	router.POST("/pronunciation", PostPronunciation)
-
-	host := viper.GetString("host")
-	port := viper.GetInt("port")
-
-	return router.Run(fmt.Sprintf("%s:%d", host, port))
-}
-
-func StartServer() error {
-	return StartRouter()
+DSSP_LanguageConversionResult DSSP_ConvertLanguage(DSSP_Lyrics lyrics) {
+	// TODO: Implement actual language conversion logic
+	const auto *input = getLyrics(lyrics);
+	auto pronunciations = std::make_unique<Pronunciations>();
+	pronunciations->reserve(input->size());
+	for (const auto &lyric : *input) {
+		pronunciations->push_back({lyric.text, {}, false});
+	}
+	return {pronunciations.release(), DSSP_LanguageConversionError_None};
 }

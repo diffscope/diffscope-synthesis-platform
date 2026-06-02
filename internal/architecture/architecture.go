@@ -16,29 +16,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>. *
  **************************************************************************/
 
-package server
+package architecture
 
 import (
-	"fmt"
+	"context"
+	"encoding/json"
 
-	"github.com/gin-contrib/gzip"
-	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
+	"diffscope-synthesis-platform/internal/api"
 )
 
-func StartRouter() error {
-	router := gin.Default()
-	router.Use(gzip.Gzip(gzip.DefaultCompression))
-
-	router.GET("/api/info", GetApplicationInfo)
-	router.POST("/pronunciation", PostPronunciation)
-
-	host := viper.GetString("host")
-	port := viper.GetInt("port")
-
-	return router.Run(fmt.Sprintf("%s:%d", host, port))
-}
-
-func StartServer() error {
-	return StartRouter()
+type Architecture interface {
+	GetEnvTag(archExtra json.RawMessage, singers []api.Singer) string
+	Pronunciation(
+		ctx context.Context,
+		archExtra json.RawMessage,
+		singer api.Singer,
+		lyrics []api.Lyric,
+	) ([]api.Pronunciation, error)
 }

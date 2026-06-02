@@ -16,29 +16,34 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>. *
  **************************************************************************/
 
-package server
+package architecture
 
-import (
-	"fmt"
+import "sort"
 
-	"github.com/gin-contrib/gzip"
-	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
-)
-
-func StartRouter() error {
-	router := gin.Default()
-	router.Use(gzip.Gzip(gzip.DefaultCompression))
-
-	router.GET("/api/info", GetApplicationInfo)
-	router.POST("/pronunciation", PostPronunciation)
-
-	host := viper.GetString("host")
-	port := viper.GetInt("port")
-
-	return router.Run(fmt.Sprintf("%s:%d", host, port))
+type Registry struct {
+	architectures map[string]Architecture
+	names         []string
 }
 
-func StartServer() error {
-	return StartRouter()
+func NewRegistry(architectures map[string]Architecture) Registry {
+	registered := make(map[string]Architecture, len(architectures))
+	names := make([]string, 0, len(architectures))
+	for name, implementation := range architectures {
+		registered[name] = implementation
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return Registry{
+		architectures: registered,
+		names:         names,
+	}
+}
+
+func (r Registry) Get(name string) (Architecture, bool) {
+	implementation, ok := r.architectures[name]
+	return implementation, ok
+}
+
+func (r Registry) Names() []string {
+	return append([]string(nil), r.names...)
 }

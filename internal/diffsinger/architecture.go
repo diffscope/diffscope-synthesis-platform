@@ -16,29 +16,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>. *
  **************************************************************************/
 
-package server
+package diffsinger
 
-import (
-	"fmt"
-
-	"github.com/gin-contrib/gzip"
-	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
-)
-
-func StartRouter() error {
-	router := gin.Default()
-	router.Use(gzip.Gzip(gzip.DefaultCompression))
-
-	router.GET("/api/info", GetApplicationInfo)
-	router.POST("/pronunciation", PostPronunciation)
-
-	host := viper.GetString("host")
-	port := viper.GetInt("port")
-
-	return router.Run(fmt.Sprintf("%s:%d", host, port))
-}
-
-func StartServer() error {
-	return StartRouter()
-}
+type Architecture struct{}

@@ -16,29 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>. *
  **************************************************************************/
 
-package server
+package diffsinger
 
-import (
-	"fmt"
+import "github.com/spf13/viper"
 
-	"github.com/gin-contrib/gzip"
-	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
-)
+const maxLyricCountConfigKey = "diffsinger_max_lyric_count"
 
-func StartRouter() error {
-	router := gin.Default()
-	router.Use(gzip.Gzip(gzip.DefaultCompression))
-
-	router.GET("/api/info", GetApplicationInfo)
-	router.POST("/pronunciation", PostPronunciation)
-
-	host := viper.GetString("host")
-	port := viper.GetInt("port")
-
-	return router.Run(fmt.Sprintf("%s:%d", host, port))
+func init() {
+	viper.SetDefault(maxLyricCountConfigKey, 4096)
 }
 
-func StartServer() error {
-	return StartRouter()
+func maxLyricCount() int {
+	return viper.GetInt(maxLyricCountConfigKey)
 }

@@ -27,6 +27,10 @@
 extern "C" {
 #endif
 
+/* ========================================================================
+ * Execution Provider Info
+ * ====================================================================== */
+
 typedef enum DSSP_ExecutionProvider {
 	DSSP_ExecutionProvider_CPU,
 	DSSP_ExecutionProvider_CUDA,
@@ -45,6 +49,41 @@ uint64_t DSSP_GetDeviceMemory(DSSP_Device device);
 bool DSSP_HasExecutionProvider(DSSP_ExecutionProvider execution_provider);
 size_t DSSP_GetExecutionProviderDeviceCount(DSSP_ExecutionProvider execution_provider);
 DSSP_Device DSSP_GetExecutionProviderDevice(DSSP_ExecutionProvider execution_provider, size_t index);
+
+/* ========================================================================
+ * Language Conversion
+ * ====================================================================== */
+
+typedef void *DSSP_Lyrics;
+
+DSSP_Lyrics DSSP_AllocateLyrics(size_t count);
+void DSSP_FreeLyrics(DSSP_Lyrics lyrics);
+size_t DSSP_GetLyricCount(DSSP_Lyrics lyrics);
+void DSSP_SetLyricText(DSSP_Lyrics lyrics, size_t index, const char *text);
+void DSSP_SetLyricLanguage(DSSP_Lyrics lyrics, size_t index, const char *language);
+const char *DSSP_GetLyricText(DSSP_Lyrics lyrics, size_t index);
+const char *DSSP_GetLyricLanguage(DSSP_Lyrics lyrics, size_t index);
+
+typedef void *DSSP_Pronunciations;
+
+void DSSP_FreePronunciations(DSSP_Pronunciations pronunciations);
+size_t DSSP_GetPronunciationCount(DSSP_Pronunciations pronunciations);
+const char *DSSP_GetPronunciationText(DSSP_Pronunciations pronunciations, size_t index);
+size_t DSSP_GetPronunciationCandidateCount(DSSP_Pronunciations pronunciations, size_t index);
+const char *DSSP_GetPronunciationCandidate(DSSP_Pronunciations pronunciations, size_t index, size_t candidate_index);
+bool DSSP_IsPronunciationError(DSSP_Pronunciations pronunciations, size_t index);
+
+typedef enum DSSP_LanguageConversionError {
+	DSSP_LanguageConversionError_None,
+	DSSP_LanguageConversionError_InternalError,
+} DSSP_LanguageConversionError;
+
+typedef struct DSSP_LanguageConversionResult {
+	DSSP_Pronunciations pronunciations;
+	DSSP_LanguageConversionError error;
+} DSSP_LanguageConversionResult;
+
+DSSP_LanguageConversionResult DSSP_ConvertLanguage(DSSP_Lyrics lyrics);
 
 #ifdef __cplusplus
 }

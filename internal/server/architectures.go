@@ -19,26 +19,17 @@
 package server
 
 import (
-	"fmt"
+	"strings"
 
-	"github.com/gin-contrib/gzip"
-	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
+	"diffscope-synthesis-platform/internal/api"
+	"diffscope-synthesis-platform/internal/architecture"
+	"diffscope-synthesis-platform/internal/diffsinger"
 )
 
-func StartRouter() error {
-	router := gin.Default()
-	router.Use(gzip.Gzip(gzip.DefaultCompression))
+var architectures = architecture.NewRegistry(map[string]architecture.Architecture{
+	"diffsinger": diffsinger.Architecture{},
+})
 
-	router.GET("/api/info", GetApplicationInfo)
-	router.POST("/pronunciation", PostPronunciation)
-
-	host := viper.GetString("host")
-	port := viper.GetInt("port")
-
-	return router.Run(fmt.Sprintf("%s:%d", host, port))
-}
-
-func StartServer() error {
-	return StartRouter()
+func newUnknownArchError() error {
+	return api.NewError(api.ErrorCodeUnknownArch, "supported architectures: "+strings.Join(architectures.Names(), ", "))
 }

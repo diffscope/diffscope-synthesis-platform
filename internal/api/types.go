@@ -16,29 +16,31 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>. *
  **************************************************************************/
 
-package server
+package api
 
-import (
-	"fmt"
+import "encoding/json"
 
-	"github.com/gin-contrib/gzip"
-	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
+type Singer struct {
+	ID    string          `json:"id"`
+	Extra json.RawMessage `json:"extra"`
+}
+
+type Lyric struct {
+	Lyric    string `json:"lyric"`
+	Language string `json:"language"`
+}
+
+type Pronunciation struct {
+	Pronunciation string   `json:"pronunciation"`
+	Candidates    []string `json:"candidates"`
+	Error         bool     `json:"error"`
+}
+
+type State string
+
+const (
+	StatePlanned  State = "PLANNED"
+	StatePending  State = "PENDING"
+	StateComplete State = "COMPLETE"
+	StateError    State = "ERROR"
 )
-
-func StartRouter() error {
-	router := gin.Default()
-	router.Use(gzip.Gzip(gzip.DefaultCompression))
-
-	router.GET("/api/info", GetApplicationInfo)
-	router.POST("/pronunciation", PostPronunciation)
-
-	host := viper.GetString("host")
-	port := viper.GetInt("port")
-
-	return router.Run(fmt.Sprintf("%s:%d", host, port))
-}
-
-func StartServer() error {
-	return StartRouter()
-}

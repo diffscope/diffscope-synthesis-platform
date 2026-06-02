@@ -16,29 +16,33 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>. *
  **************************************************************************/
 
-package server
+package api
 
-import (
-	"fmt"
+type ErrorCode string
 
-	"github.com/gin-contrib/gzip"
-	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
+const (
+	ErrorCodeInternalError       ErrorCode = "INTERNAL_ERROR"
+	ErrorCodeUnknownArch         ErrorCode = "UNKNOWN_ARCH"
+	ErrorCodeSingerNotExist      ErrorCode = "SINGER_NOT_EXIST"
+	ErrorCodeSingerConfigInvalid ErrorCode = "SINGER_CONFIG_INVALID"
+	ErrorCodeLyricsTooLong       ErrorCode = "LYRICS_TOO_LONG"
 )
 
-func StartRouter() error {
-	router := gin.Default()
-	router.Use(gzip.Gzip(gzip.DefaultCompression))
-
-	router.GET("/api/info", GetApplicationInfo)
-	router.POST("/pronunciation", PostPronunciation)
-
-	host := viper.GetString("host")
-	port := viper.GetInt("port")
-
-	return router.Run(fmt.Sprintf("%s:%d", host, port))
+type Error struct {
+	Code    ErrorCode
+	Message string
 }
 
-func StartServer() error {
-	return StartRouter()
+func NewError(code ErrorCode, message string) *Error {
+	return &Error{
+		Code:    code,
+		Message: message,
+	}
+}
+
+func (e *Error) Error() string {
+	if e.Message != "" {
+		return e.Message
+	}
+	return string(e.Code)
 }

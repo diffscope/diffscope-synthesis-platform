@@ -39,6 +39,7 @@ Public interfaces are exposed to Go through `native/swig/native.i`. When modifyi
 
 Internal C++ code in `native/src/` follows the existing implementation style:
 
+- Use snake_case for file names, such as `execution_provider_info.cpp`.
 - Use PascalCase for type names, such as `DeviceInfo` and `ExecutionProviderInfo`.
 - Use lowerCamelCase for function names, such as `getDefaultDevice` and `getExecutionProviders`.
 - Use lowerCamelCase for local variables, parameters, and struct fields, such as `executionProvider` and `defaultDevice`.
@@ -46,6 +47,7 @@ Internal C++ code in `native/src/` follows the existing implementation style:
 - Use tabs for indentation and preserve the existing brace layout.
 - Isolate platform-specific code with conditional compilation, such as `_WIN32` and `__APPLE__`.
 - Keep the public interface naming style for exported C ABI functions, even when they are implemented in `.cpp` files.
+- Let invalid input fail fast. Do not silently accept null handles, replace required null pointers with fallback values, ignore out-of-range writes, or return fallback values for out-of-range reads. Use bounds-checked container access such as `std::vector::at()`.
 
 ## Generated Files
 
