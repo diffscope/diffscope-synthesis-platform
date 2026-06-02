@@ -16,37 +16,38 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>. *
  **************************************************************************/
 
-package native
+#ifndef DSSP_NATIVE_H
+#define DSSP_NATIVE_H
 
-import (
-	"fmt"
-	"strings"
-)
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
-func (e ExecutionProviderType) String() string {
-	switch e {
-	case ExecutionProviderType_CPU:
-		return "cpu"
-	case ExecutionProviderType_CUDA:
-		return "cuda"
-	case ExecutionProviderType_DirectML:
-		return "directml"
-	case ExecutionProviderType_CoreML:
-		return "coreml"
-	}
-	panic(fmt.Sprintf("unreachable invalid ExecutionProviderType: %d", e))
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef enum DSSP_ExecutionProvider {
+	DSSP_ExecutionProvider_CPU,
+	DSSP_ExecutionProvider_CUDA,
+	DSSP_ExecutionProvider_DirectML,
+	DSSP_ExecutionProvider_CoreML,
+} DSSP_ExecutionProvider;
+
+typedef void *DSSP_Device;
+
+DSSP_Device DSSP_GetDefaultDevice(void);
+DSSP_ExecutionProvider DSSP_GetDeviceExecutionProvider(DSSP_Device device);
+int DSSP_GetDeviceIndex(DSSP_Device device);
+const char *DSSP_GetDeviceDescription(DSSP_Device device);
+const char *DSSP_GetDeviceID(DSSP_Device device);
+uint64_t DSSP_GetDeviceMemory(DSSP_Device device);
+bool DSSP_HasExecutionProvider(DSSP_ExecutionProvider execution_provider);
+size_t DSSP_GetExecutionProviderDeviceCount(DSSP_ExecutionProvider execution_provider);
+DSSP_Device DSSP_GetExecutionProviderDevice(DSSP_ExecutionProvider execution_provider, size_t index);
+
+#ifdef __cplusplus
 }
+#endif
 
-func ExecutionProviderTypeFromString(s string) (ExecutionProviderType, error) {
-	switch strings.ToLower(s) {
-	case "cpu":
-		return ExecutionProviderType_CPU, nil
-	case "cuda":
-		return ExecutionProviderType_CUDA, nil
-	case "directml":
-		return ExecutionProviderType_DirectML, nil
-	case "coreml":
-		return ExecutionProviderType_CoreML, nil
-	}
-	return 0, fmt.Errorf("invalid execution provider type: %s", s)
-}
+#endif // DSSP_NATIVE_H

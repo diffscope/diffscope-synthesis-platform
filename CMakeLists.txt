@@ -47,16 +47,18 @@ set(APPLICATION_GO_STAMP ${CMAKE_BINARY_DIR}/CMakeFiles/go_build.stamp)
 add_custom_command(
 	OUTPUT ${APPLICATION_GO_STAMP} "force_hook.fake"
 	BYPRODUCTS ${APPLICATION_EXECUTABLE}
+	DEPENDS dssp_native generate_swig_bindings
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${APPLICATION_OUTPUT_DIR}
 	COMMAND
 		${CMAKE_COMMAND} -E env
 			$<$<PLATFORM_ID:Windows>:CC=gcc>
+			$<$<PLATFORM_ID:Windows>:CXX=g++>
 			"CGO_ENABLED=1"
 			"CGO_CPPFLAGS=-I${CMAKE_SOURCE_DIR}/native/include"
 			"CGO_CXXFLAGS=-I${CMAKE_SOURCE_DIR}/native/include"
 			"CGO_LDFLAGS=-L$<TARGET_FILE_DIR:dssp_native> -ldssp_native"
 			"${GO_EXECUTABLE}" build
-				-ldflags "-X 'diffscope-synthesis-platform/lib/appinfo.ApplicationName=${APPLICATION_NAME}' -X 'diffscope-synthesis-platform/lib/appinfo.ApplicationSemver=${APPLICATION_SEMVER}'"
+				-ldflags "-X 'diffscope-synthesis-platform/internal/appinfo.ApplicationName=${APPLICATION_NAME}' -X 'diffscope-synthesis-platform/internal/appinfo.ApplicationSemver=${APPLICATION_SEMVER}'"
 				-o ${APPLICATION_EXECUTABLE}
 				./cmd/dssp
 	COMMAND ${CMAKE_COMMAND} -E touch ${APPLICATION_GO_STAMP}

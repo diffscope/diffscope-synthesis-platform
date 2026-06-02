@@ -16,18 +16,33 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>. *
  **************************************************************************/
 
-package model
+package commands
 
-type VoiceText struct {
-	VoiceSingerPackageID         string `gorm:"column:voice_singer_package_id;type:text;primaryKey"`
-	VoiceSingerPackageVersion    string `gorm:"column:voice_singer_package_version;type:text;primaryKey"`
-	VoiceSingerPackageRegistryID string `gorm:"column:voice_singer_package_registry_id;type:text;primaryKey"`
-	VoiceSingerID                string `gorm:"column:voice_singer_id;type:text;primaryKey"`
-	VoiceID                      string `gorm:"column:voice_id;type:text;primaryKey"`
-	Language                     string `gorm:"column:language;type:text;primaryKey"`
+import (
+	"diffscope-synthesis-platform/internal/server"
 
-	Name         string `gorm:"column:name;type:text"`
-	DemoAudioURL string `gorm:"column:demo_audio_url;type:text"`
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+)
 
-	Voice Voice `gorm:"foreignKey:VoiceSingerPackageID,VoiceSingerPackageVersion,VoiceSingerPackageRegistryID,VoiceSingerID,VoiceID;references:SingerPackageID,SingerPackageVersion,SingerPackageRegistryID,SingerID,ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+func NewServeCommand() (*cobra.Command, error) {
+	serveCmd := &cobra.Command{
+		Use:   "serve",
+		Short: "Start DSSP service",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return server.StartServer()
+		},
+	}
+
+	serveCmd.Flags().String("host", "127.0.0.1", "Host to bind")
+	serveCmd.Flags().Int("port", 13711, "Port to bind")
+
+	if err := viper.BindPFlag("host", serveCmd.Flags().Lookup("host")); err != nil {
+		return nil, err
+	}
+	if err := viper.BindPFlag("port", serveCmd.Flags().Lookup("port")); err != nil {
+		return nil, err
+	}
+
+	return serveCmd, nil
 }

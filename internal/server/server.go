@@ -16,17 +16,28 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>. *
  **************************************************************************/
 
-package model
+package server
 
-type SingerText struct {
-	SingerPackageID         string `gorm:"column:singer_package_id;type:text;primaryKey"`
-	SingerPackageVersion    string `gorm:"column:singer_package_version;type:text;primaryKey"`
-	SingerPackageRegistryID string `gorm:"column:singer_package_registry_id;type:text;primaryKey"`
-	SingerID                string `gorm:"column:singer_id;type:text;primaryKey"`
-	Language                string `gorm:"column:language;type:text;primaryKey"`
+import (
+	"fmt"
 
-	Name      string `gorm:"column:name;type:text"`
-	AvatarURL string `gorm:"column:avatar_url;type:text"`
+	"github.com/gin-contrib/gzip"
+	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
+)
 
-	Singer Singer `gorm:"foreignKey:SingerPackageID,SingerPackageVersion,SingerPackageRegistryID,SingerID;references:PackageID,PackageVersion,PackageRegistryID,ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+func StartRouter() error {
+	router := gin.Default()
+	router.Use(gzip.Gzip(gzip.DefaultCompression))
+
+	router.GET("/api/info", GetApplicationInfo)
+
+	host := viper.GetString("host")
+	port := viper.GetInt("port")
+
+	return router.Run(fmt.Sprintf("%s:%d", host, port))
+}
+
+func StartServer() error {
+	return StartRouter()
 }

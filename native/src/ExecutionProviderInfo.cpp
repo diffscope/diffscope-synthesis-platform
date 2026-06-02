@@ -16,22 +16,40 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>. *
  **************************************************************************/
 
-#include "ExecutionProviderInfo.h"
+#include "native.h"
 
 #include <algorithm>
+#include <cctype>
 #include <iomanip>
 #include <sstream>
+#include <string>
+#include <vector>
 
 #ifdef _WIN32
 #  include <dxgi1_6.h>
 #  include <wrl/client.h>
 #endif // _WIN32
 
+namespace {
+
+struct DeviceInfo {
+	DSSP_ExecutionProvider executionProvider;
+	int index;
+	std::string description;
+	std::string id;
+	uint64_t memory;
+};
+
+struct ExecutionProviderInfo {
+	DSSP_ExecutionProvider executionProvider;
+	std::vector<DeviceInfo> devices;
+};
+
 #ifdef _WIN32
 
 using Microsoft::WRL::ComPtr;
 
-static std::string wstrToString(const wchar_t *wstr) {
+std::string wstrToString(const wchar_t *wstr) {
 	if (wstr == nullptr || *wstr == L'\0') {
 		return {};
 	}
@@ -50,7 +68,7 @@ static std::string wstrToString(const wchar_t *wstr) {
 		return {};
 	}
 
-	std::string result(static_cast<size_t>(requiredSize - 1), '\0');
+	std::string result(static_cast<size_t>(requiredSize), '\0');
 	const int convertedSize = WideCharToMultiByte(
 		CP_UTF8,
 		0,
@@ -65,10 +83,11 @@ static std::string wstrToString(const wchar_t *wstr) {
 		return {};
 	}
 
+	result.pop_back();
 	return result;
 }
 
-static std::string getDmlDeviceId(const DXGI_ADAPTER_DESC1 &desc) {
+std::string getDmlDeviceId(const DXGI_ADAPTER_DESC1 &desc) {
 	std::stringstream ss;
 	ss << std::setfill('0') << std::setw(8) << std::hex << desc.VendorId;
 	ss << "-";
@@ -76,160 +95,162 @@ static std::string getDmlDeviceId(const DXGI_ADAPTER_DESC1 &desc) {
 	return ss.str();
 }
 
-#endif // _WIN32
-
-const std::vector<ExecutionProviderInfo> &ExecutionProviderInfo::GetExecutionProviders() {
-	static std::vector<ExecutionProviderInfo> list;
-	list.clear();
-
-	static const ExecutionProviderInfo cpuExecutionProvider {
-		ExecutionProviderType::CPU,
-		{
-			DeviceInfo {
-				ExecutionProviderType::CPU,
-				0,
-				{},
-				{},
-				0,
-			}
-		}
-	};
-	list.push_back(cpuExecutionProvider);
-
-	// TODO cuda
-
-#ifdef _WIN32
-	std::vector<DeviceInfo> dmlDevices;
+std::vector<DeviceInfo> getDmlDevices() {
+	std::vector<DeviceInfo> devices;
 	ComPtr<IDXGIFactory6> dxgiFactory;
-	if (!FAILED(CreateDXGIFactory1(IID_PPV_ARGS(&dxgiFactory)))) {
-		ComPtr<IDXGIAdapter1> adapter;
-		for (int adapterIndex = 0; dxgiFactory->EnumAdapters1(adapterIndex, &adapter) != DXGI_ERROR_NOT_FOUND; ++adapterIndex) {
-			DXGI_ADAPTER_DESC1 desc;
-			if (FAILED(adapter->GetDesc1(&desc))) {
-				continue;
-			}
-
-			if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) {
-				// Skip software adapters
-				continue;
-			}
-			dmlDevices.push_back({
-				ExecutionProviderType::DirectML,
-				adapterIndex,
-				wstrToString(desc.Description),
-				getDmlDeviceId(desc),
-				desc.DedicatedVideoMemory
-			});
-		}
-	}
-	// Sort gpuList by DedicatedVideoMemory in descending order
-	std::ranges::sort(dmlDevices, [](const auto &a, const auto &b) { return a.Memory() > b.Memory(); });
-	list.push_back({
-		ExecutionProviderType::DirectML,
-		std::move(dmlDevices)
-	});
-#endif // _WIN32
-
-#ifdef __APPLE__
-	static const ExecutionProviderInfo coreMLExecutionProvider {
-		ExecutionProviderType::CoreML,
-		{
-			DeviceInfo {
-				ExecutionProviderType::CoreML,
-				0,
-				{},
-				{},
-				0,
-			}
-		}
-	};
-	list.push_back(coreMLExecutionProvider);
-#endif // __APPLE__
-
-	return list;
-}
-
-const DeviceInfo &ExecutionProviderInfo::GetDefaultDevice() {
-	static const DeviceInfo cpuDeviceInfo {
-		ExecutionProviderType::CPU,
-		0,
-		{},
-		{},
-		0,
-	};
-#ifdef _WIN32
-	ComPtr<IDXGIFactory6> dxgiFactory;
-	if (FAILED(CreateDXGIFactory(IID_PPV_ARGS(&dxgiFactory)))) {
-		return cpuDeviceInfo;
+	if (FAILED(CreateDXGIFactory1(IID_PPV_ARGS(&dxgiFactory)))) {
+		return devices;
 	}
 
-	auto preferredDeviceInfo = cpuDeviceInfo;
-	auto alternativeDeviceInfo = cpuDeviceInfo;
-
-	// Enumerate adapters
 	ComPtr<IDXGIAdapter1> adapter;
 	for (int adapterIndex = 0; dxgiFactory->EnumAdapters1(adapterIndex, &adapter) != DXGI_ERROR_NOT_FOUND; ++adapterIndex) {
 		DXGI_ADAPTER_DESC1 desc;
-		if (FAILED(adapter->GetDesc1(&desc))) {
+		if (FAILED(adapter->GetDesc1(&desc)) || (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)) {
 			continue;
 		}
 
-		if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) {
-			// Skip software adapters
-			continue;
-		}
-
-		enum VendorIdList : unsigned int {
-			VID_AMD = 0x1002,
-			VID_NVIDIA = 0x10DE,
-			VID_SAPPHIRE = 0x174B,
-		};
-
-		DeviceInfo deviceInfo {
-			ExecutionProviderType::DirectML,
+		devices.push_back({
+			DSSP_ExecutionProvider_DirectML,
 			adapterIndex,
 			wstrToString(desc.Description),
 			getDmlDeviceId(desc),
-			desc.DedicatedVideoMemory
-		};
-
-		bool mayBeDedicatedGPU =
-			desc.VendorId == VID_NVIDIA ||
-			desc.VendorId == VID_AMD ||
-			desc.VendorId == VID_SAPPHIRE ||
-			[desc] {
-				auto s = wstrToString(desc.Description);
-				std::ranges::transform(s, s.begin(), [](unsigned char c) { return std::toupper(c); });
-				return s == "NVIDIA";
-			}();
-		if (mayBeDedicatedGPU) {
-			if (preferredDeviceInfo.Type() == ExecutionProviderType::CPU || desc.DedicatedVideoMemory > preferredDeviceInfo.Memory()) {
-				preferredDeviceInfo = deviceInfo;
-			}
-		} else {
-			if (alternativeDeviceInfo.Type() == ExecutionProviderType::CPU || desc.DedicatedVideoMemory > alternativeDeviceInfo.Memory()) {
-				alternativeDeviceInfo = deviceInfo;
-			}
-		}
+			desc.DedicatedVideoMemory,
+		});
 	}
-	static DeviceInfo dmlDeviceInfo;
-	dmlDeviceInfo = preferredDeviceInfo.Type() != ExecutionProviderType::CPU ? preferredDeviceInfo : alternativeDeviceInfo;
-	return dmlDeviceInfo;
+
+	std::ranges::sort(devices, [](const auto &a, const auto &b) { return a.memory > b.memory; });
+	return devices;
+}
+
+bool mayBeDedicatedGpu(const DeviceInfo &device) {
+	const auto separator = device.id.find('-');
+	if (separator == std::string::npos) {
+		return false;
+	}
+
+	const auto vendorId = std::stoul(device.id.substr(0, separator), nullptr, 16);
+	auto description = device.description;
+	std::ranges::transform(description, description.begin(), [](unsigned char c) { return std::toupper(c); });
+	return vendorId == 0x1002 || vendorId == 0x10DE || vendorId == 0x174B || description == "NVIDIA";
+}
 
 #endif // _WIN32
 
+const std::vector<ExecutionProviderInfo> &getExecutionProviders() {
+	static const std::vector<ExecutionProviderInfo> executionProviders = [] {
+		std::vector<ExecutionProviderInfo> result {
+			{
+				DSSP_ExecutionProvider_CPU,
+				{{DSSP_ExecutionProvider_CPU, 0, {}, {}, 0}},
+			},
+		};
+
+		// TODO cuda
+
+#ifdef _WIN32
+		result.push_back({DSSP_ExecutionProvider_DirectML, getDmlDevices()});
+#endif // _WIN32
+
 #ifdef __APPLE__
-	 static const DeviceInfo coreMLExecutionProvider {
-		ExecutionProviderType::CoreML,
-		0,
-		{},
-		{},
-		0,
-	}
-	return coreMLExecutionProvider;
+		result.push_back({
+			DSSP_ExecutionProvider_CoreML,
+			{{DSSP_ExecutionProvider_CoreML, 0, {}, {}, 0}},
+		});
 #endif // __APPLE__
 
-	// TODO cuda
+		return result;
+	}();
+	return executionProviders;
+}
 
-	return cpuDeviceInfo;
+const ExecutionProviderInfo *getExecutionProvider(DSSP_ExecutionProvider executionProvider) {
+	const auto &executionProviders = getExecutionProviders();
+	const auto it = std::ranges::find(executionProviders, executionProvider, &ExecutionProviderInfo::executionProvider);
+	return it == executionProviders.end() ? nullptr : &*it;
+}
+
+const DeviceInfo *getDevice(DSSP_Device device) {
+	return static_cast<const DeviceInfo *>(device);
+}
+
+const DeviceInfo *getDefaultDevice() {
+	static const DeviceInfo *defaultDevice = [] {
+		const auto *cpuExecutionProvider = getExecutionProvider(DSSP_ExecutionProvider_CPU);
+		const auto *cpuDevice = &cpuExecutionProvider->devices.front();
+
+#ifdef _WIN32
+		const auto *dmlExecutionProvider = getExecutionProvider(DSSP_ExecutionProvider_DirectML);
+		const DeviceInfo *preferredDevice = nullptr;
+		const DeviceInfo *alternativeDevice = nullptr;
+		for (const auto &device : dmlExecutionProvider->devices) {
+			auto &candidate = mayBeDedicatedGpu(device) ? preferredDevice : alternativeDevice;
+			if (candidate == nullptr || device.memory > candidate->memory) {
+				candidate = &device;
+			}
+		}
+		if (preferredDevice != nullptr) {
+			return preferredDevice;
+		}
+		if (alternativeDevice != nullptr) {
+			return alternativeDevice;
+		}
+#endif // _WIN32
+
+#ifdef __APPLE__
+		return &getExecutionProvider(DSSP_ExecutionProvider_CoreML)->devices.front();
+#endif // __APPLE__
+
+		// TODO cuda
+
+		return cpuDevice;
+	}();
+	return defaultDevice;
+}
+
+} // namespace
+
+DSSP_Device DSSP_GetDefaultDevice(void) {
+	return const_cast<DeviceInfo *>(getDefaultDevice());
+}
+
+DSSP_ExecutionProvider DSSP_GetDeviceExecutionProvider(DSSP_Device device) {
+	const auto *deviceInfo = getDevice(device);
+	return deviceInfo == nullptr ? DSSP_ExecutionProvider_CPU : deviceInfo->executionProvider;
+}
+
+int DSSP_GetDeviceIndex(DSSP_Device device) {
+	const auto *deviceInfo = getDevice(device);
+	return deviceInfo == nullptr ? 0 : deviceInfo->index;
+}
+
+const char *DSSP_GetDeviceDescription(DSSP_Device device) {
+	const auto *deviceInfo = getDevice(device);
+	return deviceInfo == nullptr ? "" : deviceInfo->description.c_str();
+}
+
+const char *DSSP_GetDeviceID(DSSP_Device device) {
+	const auto *deviceInfo = getDevice(device);
+	return deviceInfo == nullptr ? "" : deviceInfo->id.c_str();
+}
+
+uint64_t DSSP_GetDeviceMemory(DSSP_Device device) {
+	const auto *deviceInfo = getDevice(device);
+	return deviceInfo == nullptr ? 0 : deviceInfo->memory;
+}
+
+bool DSSP_HasExecutionProvider(DSSP_ExecutionProvider execution_provider) {
+	return getExecutionProvider(execution_provider) != nullptr;
+}
+
+size_t DSSP_GetExecutionProviderDeviceCount(DSSP_ExecutionProvider execution_provider) {
+	const auto *executionProvider = getExecutionProvider(execution_provider);
+	return executionProvider == nullptr ? 0 : executionProvider->devices.size();
+}
+
+DSSP_Device DSSP_GetExecutionProviderDevice(DSSP_ExecutionProvider execution_provider, size_t index) {
+	const auto *executionProvider = getExecutionProvider(execution_provider);
+	if (executionProvider == nullptr || index >= executionProvider->devices.size()) {
+		return nullptr;
+	}
+	return const_cast<DeviceInfo *>(&executionProvider->devices[index]);
 }

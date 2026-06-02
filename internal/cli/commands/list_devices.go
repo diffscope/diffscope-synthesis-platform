@@ -16,17 +16,26 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>. *
  **************************************************************************/
 
-package controller
+package commands
 
-import (
-	"net/http"
-	"diffscope-synthesis-platform/lib/server/service"
-	"github.com/gin-gonic/gin"
-)
+import "github.com/spf13/cobra"
 
-func GetApplicationInfo(c *gin.Context) {
-	info := service.GetApplicationInfo()
-	c.JSON(http.StatusOK, gin.H{
-		"dssp": info,
-	})
+func NewListDevicesCommand(printDevices func(bool)) (*cobra.Command, error) {
+	listDevicesCmd := &cobra.Command{
+		Use:   "list-devices",
+		Short: "List available execution devices",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			shouldPrintAsJSON, err := cmd.Flags().GetBool("json")
+			if err != nil {
+				return err
+			}
+
+			printDevices(shouldPrintAsJSON)
+			return nil
+		},
+	}
+
+	listDevicesCmd.Flags().Bool("json", false, "Output device list as JSON")
+
+	return listDevicesCmd, nil
 }

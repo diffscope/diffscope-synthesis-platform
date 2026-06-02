@@ -16,10 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>. *
  **************************************************************************/
 
-package utils
+package cli
 
 import (
-	"diffscope-synthesis-platform/native"
+	"diffscope-synthesis-platform/internal/executionprovider"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -46,12 +46,12 @@ type jsonListDevicesResponse struct {
 	DefaultDevice      jsonDeviceInfo              `json:"default_device"`
 }
 
-func toJSONDeviceInfo(device native.DeviceInfo) jsonDeviceInfo {
+func toJSONDeviceInfo(device executionprovider.Device) jsonDeviceInfo {
 	return jsonDeviceInfo{
-		Type:        device.Type().String(),
+		Type:        device.Provider().String(),
 		Index:       device.Index(),
 		Description: device.Description(),
-		ID:          device.Id(),
+		ID:          device.ID(),
 		Memory:      device.Memory(),
 	}
 }
@@ -74,25 +74,24 @@ func formatMemorySize(memory uint64) string {
 	}
 }
 
-func PrintDevices(shouldPrintAsJson bool) {
-	executionProviders := native.ExecutionProviderInfoGetExecutionProviders()
-	defaultDevice := native.ExecutionProviderInfoGetDefaultDevice()
-	if shouldPrintAsJson {
+func PrintDevices(shouldPrintAsJSON bool) {
+	executionProviders := executionprovider.Providers()
+	defaultDevice := executionprovider.DefaultDevice()
+	if shouldPrintAsJSON {
 		response := jsonListDevicesResponse{
-			ExecutionProviders: make([]jsonExecutionProviderInfo, 0, executionProviders.Size()),
+			ExecutionProviders: make([]jsonExecutionProviderInfo, 0, len(executionProviders)),
 			DefaultDevice:      toJSONDeviceInfo(defaultDevice),
 		}
 
-		for i := int64(0); i < executionProviders.Size(); i++ {
-			provider := executionProviders.Get(int(i))
+		for _, provider := range executionProviders {
 			providerDevices := provider.Devices()
 			jsonProvider := jsonExecutionProviderInfo{
-				Type:    provider.Type().String(),
-				Devices: make([]jsonDeviceInfo, 0, providerDevices.Size()),
+				Type:    provider.String(),
+				Devices: make([]jsonDeviceInfo, 0, len(providerDevices)),
 			}
 
-			for j := int64(0); j < providerDevices.Size(); j++ {
-				jsonProvider.Devices = append(jsonProvider.Devices, toJSONDeviceInfo(providerDevices.Get(int(j))))
+			for _, device := range providerDevices {
+				jsonProvider.Devices = append(jsonProvider.Devices, toJSONDeviceInfo(device))
 			}
 
 			response.ExecutionProviders = append(response.ExecutionProviders, jsonProvider)
@@ -106,14 +105,12 @@ func PrintDevices(shouldPrintAsJson bool) {
 		twStyle := table.StyleRounded
 		twStyle.Options.SeparateRows = true
 		twStyle.Format.Header = text.FormatDefault
-		for i := int64(0); i < executionProviders.Size(); i++ {
-			provider := executionProviders.Get(int(i))
-			providerType := provider.Type()
+		for _, provider := range executionProviders {
 			tw := table.NewWriter()
 			tw.SetStyle(twStyle)
-			providerName := providerType.String()
+			providerName := provider.String()
 
-			if providerType == native.ExecutionProviderType_CPU || providerType == native.ExecutionProviderType_CoreML {
+			if provider == executionprovider.CPU || provider == executionprovider.CoreML {
 				tw.AppendRow(
 					table.Row{providerName},
 				)
@@ -128,13 +125,11 @@ func PrintDevices(shouldPrintAsJson bool) {
 
 			tw.AppendHeader(table.Row{"Index", "Description", "ID", "Memory"})
 
-			devices := provider.Devices()
-			for j := int64(0); j < devices.Size(); j++ {
-				device := devices.Get(int(j))
+			for _, device := range provider.Devices() {
 				tw.AppendRow(table.Row{
 					device.Index(),
 					device.Description(),
-					device.Id(),
+					device.ID(),
 					formatMemorySize(device.Memory()),
 				})
 			}
@@ -145,9 +140,9 @@ func PrintDevices(shouldPrintAsJson bool) {
 		fmt.Printf("Default device:\n")
 		tw := table.NewWriter()
 		tw.SetStyle(twStyle)
-		providerType := defaultDevice.Type()
-		providerName := providerType.String()
-		if providerType == native.ExecutionProviderType_CPU || providerType == native.ExecutionProviderType_CoreML {
+		provider := defaultDevice.Provider()
+		providerName := provider.String()
+		if provider == executionprovider.CPU || provider == executionprovider.CoreML {
 			tw.AppendRow(
 				table.Row{providerName},
 			)
@@ -161,7 +156,7 @@ func PrintDevices(shouldPrintAsJson bool) {
 			tw.AppendRow(table.Row{
 				defaultDevice.Index(),
 				defaultDevice.Description(),
-				defaultDevice.Id(),
+				defaultDevice.ID(),
 				formatMemorySize(defaultDevice.Memory()),
 			})
 			fmt.Println(tw.Render())
