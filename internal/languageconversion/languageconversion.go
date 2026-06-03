@@ -18,7 +18,18 @@
 
 package languageconversion
 
-import "diffscope-synthesis-platform/native"
+import (
+	"errors"
+	"sync"
+
+	"diffscope-synthesis-platform/internal/executionprovider"
+	"diffscope-synthesis-platform/native"
+)
+
+var (
+	initializeOnce sync.Once
+	initializeErr  error
+)
 
 type Lyric struct {
 	Text     string
@@ -31,25 +42,22 @@ type Pronunciation struct {
 	IsError    bool
 }
 
-type Error int
+func Initialize(device executionprovider.Device) error {
+	initializeOnce.Do(func() {
+		if native.DSSP_InitializeLanguageConversion(device.Handle()) {
+			return
+		}
 
-const (
-	None Error = iota
-	InternalError
-)
-
-func (e Error) Error() string {
-	switch e {
-	case None:
-		return "no error"
-	case InternalError:
-		return "internal error"
-	default:
-		return "unknown error"
-	}
+		message := native.DSSP_GetLanguageConversionErrorMessage()
+		if message == "" {
+			message = "initialize language conversion"
+		}
+		initializeErr = errors.New(message)
+	})
+	return initializeErr
 }
 
-func Convert(lyrics []Lyric) ([]Pronunciation, error) {
+func Convert(lyrics []Lyric) []Pronunciation {
 	input := native.DSSP_AllocateLyrics(int64(len(lyrics)))
 	defer native.DSSP_FreeLyrics(input)
 
@@ -58,16 +66,9 @@ func Convert(lyrics []Lyric) ([]Pronunciation, error) {
 		native.DSSP_SetLyricLanguage(input, int64(index), lyric.Language)
 	}
 
-	result := native.DSSP_ConvertLanguage(input)
-	defer native.DeleteDSSP_LanguageConversionResult(result)
-
-	output := result.GetPronunciations()
+	output := native.DSSP_ConvertLanguage(input)
 	if output != 0 {
 		defer native.DSSP_FreePronunciations(output)
-	}
-
-	if err := Error(result.GetError()); err != None {
-		return nil, err
 	}
 
 	count := native.DSSP_GetPronunciationCount(output)
@@ -85,5 +86,5 @@ func Convert(lyrics []Lyric) ([]Pronunciation, error) {
 			IsError:    native.DSSP_IsPronunciationError(output, index),
 		})
 	}
-	return pronunciations, nil
+	return pronunciations
 }

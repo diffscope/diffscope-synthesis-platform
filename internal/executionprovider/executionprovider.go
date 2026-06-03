@@ -18,7 +18,11 @@
 
 package executionprovider
 
-import "diffscope-synthesis-platform/native"
+import (
+	"strings"
+
+	"diffscope-synthesis-platform/native"
+)
 
 type Provider int
 
@@ -51,6 +55,21 @@ func (p Provider) String() string {
 	}
 }
 
+func ParseProvider(value string) (Provider, bool) {
+	switch strings.ToLower(value) {
+	case CPU.String():
+		return CPU, true
+	case CUDA.String():
+		return CUDA, true
+	case DirectML.String():
+		return DirectML, true
+	case CoreML.String():
+		return CoreML, true
+	default:
+		return CPU, false
+	}
+}
+
 func (p Provider) IsAvailable() bool {
 	return native.DSSP_HasExecutionProvider(native.DSSP_ExecutionProvider(p))
 }
@@ -76,12 +95,29 @@ func Providers() []Provider {
 	return result
 }
 
+func FindDevice(provider Provider, index int) (Device, bool) {
+	if index < 0 {
+		return Device{}, false
+	}
+
+	for _, device := range provider.Devices() {
+		if device.Index() == index {
+			return device, true
+		}
+	}
+	return Device{}, false
+}
+
 type Device struct {
 	handle uintptr
 }
 
 func DefaultDevice() Device {
 	return Device{handle: native.DSSP_GetDefaultDevice()}
+}
+
+func (d Device) Handle() uintptr {
+	return d.handle
 }
 
 func (d Device) Provider() Provider {

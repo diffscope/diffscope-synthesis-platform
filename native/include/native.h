@@ -73,17 +73,9 @@ size_t DSSP_GetPronunciationCandidateCount(DSSP_Pronunciations pronunciations, s
 const char *DSSP_GetPronunciationCandidate(DSSP_Pronunciations pronunciations, size_t index, size_t candidate_index);
 bool DSSP_IsPronunciationError(DSSP_Pronunciations pronunciations, size_t index);
 
-typedef enum DSSP_LanguageConversionError {
-	DSSP_LanguageConversionError_None,
-	DSSP_LanguageConversionError_InternalError,
-} DSSP_LanguageConversionError;
-
-typedef struct DSSP_LanguageConversionResult {
-	DSSP_Pronunciations pronunciations;
-	DSSP_LanguageConversionError error;
-} DSSP_LanguageConversionResult;
-
-DSSP_LanguageConversionResult DSSP_ConvertLanguage(DSSP_Lyrics lyrics);
+bool DSSP_InitializeLanguageConversion(DSSP_Device device);
+const char *DSSP_GetLanguageConversionErrorMessage(void);
+DSSP_Pronunciations DSSP_ConvertLanguage(DSSP_Lyrics lyrics);
 
 #ifdef __cplusplus
 }

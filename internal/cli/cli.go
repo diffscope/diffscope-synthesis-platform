@@ -27,6 +27,7 @@ import (
 
 	"diffscope-synthesis-platform/internal/appinfo"
 	"diffscope-synthesis-platform/internal/cli/commands"
+	"diffscope-synthesis-platform/internal/executionprovider"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -117,6 +118,9 @@ func initializeConfig(cmd *cobra.Command, defaultRootDir string) error {
 	viper.SetDefault("log_dir", filepath.Join(defaultRootDir, "logs"))
 	viper.SetDefault("cache_dir", filepath.Join(defaultRootDir, "cache"))
 	viper.SetDefault("verbose", false)
+	defaultDevice := executionprovider.DefaultDevice()
+	viper.SetDefault("execution_provider.type", defaultDevice.Provider().String())
+	viper.SetDefault("execution_provider.device_index", defaultDevice.Index())
 
 	viper.SetConfigName("config")
 	viper.AddConfigPath(configDir)

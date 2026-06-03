@@ -62,7 +62,7 @@ func (Architecture) Pronunciation(
 	for _, lyric := range lyrics {
 		input = append(input, languageconversion.Lyric{
 			Text:     lyric.Lyric,
-			Language: lyric.Language,
+			Language: "g2p-" + lyric.Language + "-official", // TODO
 		})
 	}
 
@@ -94,10 +94,9 @@ func runPronunciationWorker() {
 			request.result <- pronunciationResult{err: err}
 			continue
 		}
-		pronunciations, err := languageconversion.Convert(request.lyrics)
+		pronunciations := languageconversion.Convert(request.lyrics)
 		request.result <- pronunciationResult{
 			pronunciations: convertPronunciations(pronunciations),
-			err:            err,
 		}
 	}
 }
