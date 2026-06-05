@@ -18,4 +18,10 @@
 
 package diffsinger
 
+import "diffscope-synthesis-platform/internal/server"
+
 type Architecture struct{}
+
+func init() {
+	server.RegisterArchitecture("diffsinger", Architecture{})
+}

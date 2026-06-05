@@ -16,36 +16,30 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>. *
  **************************************************************************/
 
-#ifndef DSSP_TYPES_H
-#define DSSP_TYPES_H
+#ifndef DSSP_LOGGER_H
+#define DSSP_LOGGER_H
 
 #include "native.h"
 
 #include <string>
-#include <vector>
 
-struct Lyric {
-	std::string text;
-	std::string language;
-};
+namespace dssp {
 
-struct Pronunciation {
-	std::string text;
-	std::vector<std::string> candidates;
-	bool isError;
-};
+	class Logger {
+	public:
+		explicit Logger(const char *component);
 
-struct Phoneme {
-	std::string text;
-	bool isOnset;
-};
+		void debug(const std::string &message) const;
+		void info(const std::string &message) const;
+		void warn(const std::string &message) const;
+		void error(const std::string &message) const;
 
-using Lyrics = std::vector<Lyric>;
-using Pronunciations = std::vector<Pronunciation>;
-using Phonemes = std::vector<Phoneme>;
+	private:
+		void log(int level, const std::string &message) const;
 
-Lyrics *getLyrics(DSSP_Lyrics lyrics);
-Pronunciations *getPronunciations(DSSP_Pronunciations pronunciations);
-Phonemes *getPhonemes(DSSP_Phonemes phonemes);
+		const char *_component;
+	};
 
-#endif // DSSP_TYPES_H
+}
+
+#endif // DSSP_LOGGER_H

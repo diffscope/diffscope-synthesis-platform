@@ -16,36 +16,49 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>. *
  **************************************************************************/
 
-#ifndef DSSP_TYPES_H
-#define DSSP_TYPES_H
+#ifndef DSSP_NATIVE_FILE_UTILS_H
+#define DSSP_NATIVE_FILE_UTILS_H
 
-#include "native.h"
-
+#include <filesystem>
+#include <fstream>
+#include <ios>
+#include <iterator>
+#include <stdexcept>
 #include <string>
-#include <vector>
 
-struct Lyric {
-	std::string text;
-	std::string language;
-};
+namespace dssp {
 
-struct Pronunciation {
-	std::string text;
-	std::vector<std::string> candidates;
-	bool isError;
-};
+	inline std::filesystem::path pathFromUtf8(const char *path) {
+		if (!path) {
+			throw std::invalid_argument("path must not be null");
+		}
 
-struct Phoneme {
-	std::string text;
-	bool isOnset;
-};
+#if defined(_WIN32)
+		const std::string pathString(path);
+		std::u8string u8Path;
+		u8Path.reserve(pathString.size());
+		for (const auto ch : pathString) {
+			u8Path.push_back(static_cast<char8_t>(static_cast<unsigned char>(ch)));
+		}
+		return std::filesystem::path(u8Path);
+#else
+		return std::filesystem::path(path);
+#endif
+	}
 
-using Lyrics = std::vector<Lyric>;
-using Pronunciations = std::vector<Pronunciation>;
-using Phonemes = std::vector<Phoneme>;
+	inline std::ifstream openUtf8File(const char *path, std::ios::openmode mode = std::ios::in) {
+		std::ifstream stream(pathFromUtf8(path), mode);
+		if (!stream) {
+			throw std::runtime_error("failed to open file: " + std::string(path));
+		}
+		return stream;
+	}
 
-Lyrics *getLyrics(DSSP_Lyrics lyrics);
-Pronunciations *getPronunciations(DSSP_Pronunciations pronunciations);
-Phonemes *getPhonemes(DSSP_Phonemes phonemes);
+	inline std::string readUtf8File(const char *path) {
+		auto stream = openUtf8File(path, std::ios::in | std::ios::binary);
+		return std::string(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>());
+	}
 
-#endif // DSSP_TYPES_H
+}
+
+#endif // DSSP_NATIVE_FILE_UTILS_H

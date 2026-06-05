@@ -19,9 +19,12 @@
 package executionprovider
 
 import (
+	"fmt"
 	"strings"
 
 	"diffscope-synthesis-platform/native"
+
+	"github.com/spf13/viper"
 )
 
 type Provider int
@@ -106,6 +109,30 @@ func FindDevice(provider Provider, index int) (Device, bool) {
 		}
 	}
 	return Device{}, false
+}
+
+func init() {
+	defaultDevice := DefaultDevice()
+	viper.SetDefault("execution_provider.type", defaultDevice.Provider().String())
+	viper.SetDefault("execution_provider.device_index", defaultDevice.Index())
+}
+
+func ConfiguredDevice() (Device, error) {
+	providerType := viper.GetString("execution_provider.type")
+	deviceIndex := viper.GetInt("execution_provider.device_index")
+
+	provider, ok := ParseProvider(providerType)
+	if ok {
+		if device, ok := FindDevice(provider, deviceIndex); ok {
+			return device, nil
+		}
+	}
+
+	return Device{}, fmt.Errorf(
+		"execution provider device not found: type=%s, device_index=%d",
+		providerType,
+		deviceIndex,
+	)
 }
 
 type Device struct {

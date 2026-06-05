@@ -23,11 +23,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"diffscope-synthesis-platform/internal/appinfo"
 	"diffscope-synthesis-platform/internal/cli/commands"
-	"diffscope-synthesis-platform/internal/executionprovider"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -41,13 +41,40 @@ func Execute() error {
 	return rootCmd.Execute()
 }
 
-func newRootCommand() (*cobra.Command, error) {
+func defaultPackagesDir() string {
+	switch runtime.GOOS {
+	case "windows":
+		if base := os.Getenv("LOCALAPPDATA"); base != "" {
+			return filepath.Join(base, "OpenVPI", "DiffScope_packages")
+		}
+		if base, err := os.UserConfigDir(); err == nil && base != "" {
+			return filepath.Join(base, "OpenVPI", "DiffScope_packages")
+		}
+	case "darwin":
+		if home, err := os.UserHomeDir(); err == nil && home != "" {
+			return filepath.Join(home, "Library", "Application Support", "OpenVPI", "DiffScope_packages")
+		}
+	default:
+		if base := os.Getenv("XDG_DATA_HOME"); base != "" {
+			return filepath.Join(base, "OpenVPI", "DiffScope_packages")
+		}
+		if home, err := os.UserHomeDir(); err == nil && home != "" {
+			return filepath.Join(home, ".local", "share", "OpenVPI", "DiffScope_packages")
+		}
+	}
+
+	return ""
+}
+
+func defaultRootDir() string {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return nil, fmt.Errorf("resolve home directory: %w", err)
+		return ""
 	}
-	defaultRootDir := filepath.Join(homeDir, ".dssp")
+	return filepath.Join(homeDir, ".dssp")
+}
 
+func newRootCommand() (*cobra.Command, error) {
 	rootCmd := &cobra.Command{
 		Use:           "dssp",
 		Short:         appinfo.ApplicationName + " CLI",
@@ -57,16 +84,16 @@ func newRootCommand() (*cobra.Command, error) {
 			return cmd.Help()
 		},
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			return initializeConfig(cmd, defaultRootDir)
+			return initializeConfig(cmd)
 		},
 	}
 	rootCmd.Version = appinfo.ApplicationSemver
 
 	flags := rootCmd.PersistentFlags()
-	flags.String("config-dir", filepath.Join(defaultRootDir, "config"), "Directory that contains config file")
-	flags.String("package-dir", filepath.Join(defaultRootDir, "packages"), "Directory for packages")
-	flags.String("log-dir", filepath.Join(defaultRootDir, "logs"), "Directory for logs")
-	flags.String("cache-dir", filepath.Join(defaultRootDir, "cache"), "Directory for cache")
+	flags.String("config-dir", filepath.Join(defaultRootDir(), "config"), "Directory that contains config file")
+	flags.String("package-dir", defaultPackagesDir(), "Directory for packages")
+	flags.String("log-dir", filepath.Join(defaultRootDir(), "logs"), "Directory for logs")
+	flags.String("cache-dir", filepath.Join(defaultRootDir(), "cache"), "Directory for cache")
 	flags.Bool("verbose", false, "Enable verbose logging")
 
 	rootCmd.Flags().BoolP("version", "v", false, "Print version")
@@ -102,7 +129,7 @@ func newRootCommand() (*cobra.Command, error) {
 	return rootCmd, nil
 }
 
-func initializeConfig(cmd *cobra.Command, defaultRootDir string) error {
+func initializeConfig(cmd *cobra.Command) error {
 	configDir, err := cmd.Flags().GetString("config-dir")
 	if err != nil {
 		return err
@@ -114,13 +141,10 @@ func initializeConfig(cmd *cobra.Command, defaultRootDir string) error {
 
 	viper.SetDefault("host", "127.0.0.1")
 	viper.SetDefault("port", 13711)
-	viper.SetDefault("package_dir", filepath.Join(defaultRootDir, "packages"))
-	viper.SetDefault("log_dir", filepath.Join(defaultRootDir, "logs"))
-	viper.SetDefault("cache_dir", filepath.Join(defaultRootDir, "cache"))
+	viper.SetDefault("package_dir", defaultPackagesDir())
+	viper.SetDefault("log_dir", filepath.Join(defaultRootDir(), "logs"))
+	viper.SetDefault("cache_dir", filepath.Join(defaultRootDir(), "cache"))
 	viper.SetDefault("verbose", false)
-	defaultDevice := executionprovider.DefaultDevice()
-	viper.SetDefault("execution_provider.type", defaultDevice.Provider().String())
-	viper.SetDefault("execution_provider.device_index", defaultDevice.Index())
 
 	viper.SetConfigName("config")
 	viper.AddConfigPath(configDir)

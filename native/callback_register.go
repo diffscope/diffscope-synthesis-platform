@@ -16,36 +16,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>. *
  **************************************************************************/
 
-#ifndef DSSP_TYPES_H
-#define DSSP_TYPES_H
+package native
 
+/*
 #include "native.h"
 
-#include <string>
-#include <vector>
+extern void log_impl(const char *component, int level, const char *message);
 
-struct Lyric {
-	std::string text;
-	std::string language;
-};
+static void DSSP_RegisterGoLogCallback(void) {
+	DSSP_SetLogCallback((DSSP_LogCallback)log_impl);
+}
+*/
+import "C"
 
-struct Pronunciation {
-	std::string text;
-	std::vector<std::string> candidates;
-	bool isError;
-};
-
-struct Phoneme {
-	std::string text;
-	bool isOnset;
-};
-
-using Lyrics = std::vector<Lyric>;
-using Pronunciations = std::vector<Pronunciation>;
-using Phonemes = std::vector<Phoneme>;
-
-Lyrics *getLyrics(DSSP_Lyrics lyrics);
-Pronunciations *getPronunciations(DSSP_Pronunciations pronunciations);
-Phonemes *getPhonemes(DSSP_Phonemes phonemes);
-
-#endif // DSSP_TYPES_H
+func init() {
+	C.DSSP_RegisterGoLogCallback()
+}

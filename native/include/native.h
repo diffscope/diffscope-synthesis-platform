@@ -28,6 +28,14 @@ extern "C" {
 #endif
 
 /* ========================================================================
+ * Logging
+ * ====================================================================== */
+
+typedef void (*DSSP_LogCallback)(const char *component, int level, const char *message);
+
+void DSSP_SetLogCallback(DSSP_LogCallback log_callback);
+
+/* ========================================================================
  * Execution Provider Info
  * ====================================================================== */
 
@@ -76,6 +84,45 @@ bool DSSP_IsPronunciationError(DSSP_Pronunciations pronunciations, size_t index)
 bool DSSP_InitializeLanguageConversion(DSSP_Device device);
 const char *DSSP_GetLanguageConversionErrorMessage(void);
 DSSP_Pronunciations DSSP_ConvertLanguage(DSSP_Lyrics lyrics);
+
+/* ========================================================================
+ * Phoneme Conversion
+ * ====================================================================== */
+
+typedef void *DSSP_Phonemes;
+
+void DSSP_FreePhonemes(DSSP_Phonemes phonemes);
+size_t DSSP_GetPhonemeCount(DSSP_Phonemes phonemes);
+const char *DSSP_GetPhonemeText(DSSP_Phonemes phonemes, size_t index);
+bool DSSP_IsPhonemeOnset(DSSP_Phonemes phonemes, size_t index);
+
+typedef void *DSSP_S2P;
+
+DSSP_S2P DSSP_NewDirectS2P(void);
+DSSP_S2P DSSP_NewMapS2P(const char *mapping_file_path);
+DSSP_S2P DSSP_NewDictS2P(const char *dictionary_file_path);
+DSSP_S2P DSSP_NewCustomS2P(const char *lua_script_file_path);
+void DSSP_DeleteS2P(DSSP_S2P s2p);
+bool DSSP_IsS2PError(DSSP_S2P s2p);
+const char *DSSP_GetS2PErrorMessage(DSSP_S2P s2p);
+
+// thread-safe
+DSSP_Phonemes DSSP_RunS2P(DSSP_S2P s2p, const char *pronunciation_text);
+void DSSP_TerminateCustomS2P(DSSP_S2P s2p);
+
+typedef void *DSSP_OnsetMarker;
+
+DSSP_OnsetMarker DSSP_NewRuleOnsetMarker(const char *rule_file_path);
+DSSP_OnsetMarker DSSP_NewCustomOnsetMarker(const char *lua_script_file_path);
+void DSSP_DeleteOnsetMarker(DSSP_OnsetMarker onset_marker);
+bool DSSP_IsOnsetMarkerError(DSSP_OnsetMarker onset_marker);
+const char *DSSP_GetOnsetMarkerErrorMessage(DSSP_OnsetMarker onset_marker);
+
+// thread-safe
+void DSSP_RunOnsetMarker(DSSP_OnsetMarker onset_marker, DSSP_Phonemes phonemes);
+void DSSP_TerminateCustomOnsetMarker(DSSP_OnsetMarker onset_marker);
+
+void DSSP_SetLuaRunnerCount(size_t count);
 
 #ifdef __cplusplus
 }

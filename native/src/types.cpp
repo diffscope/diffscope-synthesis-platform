@@ -26,6 +26,10 @@ Pronunciations *getPronunciations(DSSP_Pronunciations pronunciations) {
 	return static_cast<Pronunciations *>(pronunciations);
 }
 
+Phonemes *getPhonemes(DSSP_Phonemes phonemes) {
+	return static_cast<Phonemes *>(phonemes);
+}
+
 DSSP_Lyrics DSSP_AllocateLyrics(size_t count) {
 	return new Lyrics(count);
 }
@@ -86,4 +90,23 @@ const char *DSSP_GetPronunciationCandidate(DSSP_Pronunciations pronunciations, s
 bool DSSP_IsPronunciationError(DSSP_Pronunciations pronunciations, size_t index) {
 	const auto *result = getPronunciations(pronunciations);
 	return result->at(index).isError;
+}
+
+void DSSP_FreePhonemes(DSSP_Phonemes phonemes) {
+	delete getPhonemes(phonemes);
+}
+
+size_t DSSP_GetPhonemeCount(DSSP_Phonemes phonemes) {
+	const auto *result = getPhonemes(phonemes);
+	return result->size();
+}
+
+const char *DSSP_GetPhonemeText(DSSP_Phonemes phonemes, size_t index) {
+	const auto *result = getPhonemes(phonemes);
+	return result->at(index).text.c_str();
+}
+
+bool DSSP_IsPhonemeOnset(DSSP_Phonemes phonemes, size_t index) {
+	const auto *result = getPhonemes(phonemes);
+	return result->at(index).isOnset;
 }

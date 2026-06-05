@@ -20,14 +20,42 @@ package server
 
 import (
 	"fmt"
-
-	"diffscope-synthesis-platform/internal/executionprovider"
-	"diffscope-synthesis-platform/internal/languageconversion"
+	"sync"
 
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 )
+
+type StartRoutine func() error
+
+var (
+	startRoutinesMu sync.Mutex
+	startRoutines   []StartRoutine
+)
+
+func RegisterStartRoutine(routine StartRoutine) {
+	if routine == nil {
+		panic("server: nil start routine")
+	}
+
+	startRoutinesMu.Lock()
+	defer startRoutinesMu.Unlock()
+	startRoutines = append(startRoutines, routine)
+}
+
+func runStartRoutines() error {
+	startRoutinesMu.Lock()
+	routines := append([]StartRoutine(nil), startRoutines...)
+	startRoutinesMu.Unlock()
+
+	for _, routine := range routines {
+		if err := routine(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 func StartRouter() error {
 	router := gin.Default()
@@ -43,30 +71,8 @@ func StartRouter() error {
 }
 
 func StartServer() error {
-	device, err := getConfiguredExecutionProviderDevice()
-	if err != nil {
-		return err
-	}
-	if err := languageconversion.Initialize(device); err != nil {
+	if err := runStartRoutines(); err != nil {
 		return err
 	}
 	return StartRouter()
-}
-
-func getConfiguredExecutionProviderDevice() (executionprovider.Device, error) {
-	providerType := viper.GetString("execution_provider.type")
-	deviceIndex := viper.GetInt("execution_provider.device_index")
-
-	provider, ok := executionprovider.ParseProvider(providerType)
-	if ok {
-		if device, ok := executionprovider.FindDevice(provider, deviceIndex); ok {
-			return device, nil
-		}
-	}
-
-	return executionprovider.Device{}, fmt.Errorf(
-		"execution provider device not found: type=%s, device_index=%d",
-		providerType,
-		deviceIndex,
-	)
 }

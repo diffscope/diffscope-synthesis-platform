@@ -16,36 +16,47 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>. *
  **************************************************************************/
 
-#ifndef DSSP_TYPES_H
-#define DSSP_TYPES_H
+#include "logger.h"
 
-#include "native.h"
+namespace {
+	constexpr auto kLogLevelDebug = -4;
+	constexpr auto kLogLevelInfo = 0;
+	constexpr auto kLogLevelWarning = 4;
+	constexpr auto kLogLevelError = 8;
 
-#include <string>
-#include <vector>
+	DSSP_LogCallback g_logCallback = nullptr;
+}
 
-struct Lyric {
-	std::string text;
-	std::string language;
-};
+void DSSP_SetLogCallback(DSSP_LogCallback log_callback) {
+	g_logCallback = log_callback;
+}
 
-struct Pronunciation {
-	std::string text;
-	std::vector<std::string> candidates;
-	bool isError;
-};
+namespace dssp {
 
-struct Phoneme {
-	std::string text;
-	bool isOnset;
-};
+	Logger::Logger(const char *component) : _component(component) {
+	}
 
-using Lyrics = std::vector<Lyric>;
-using Pronunciations = std::vector<Pronunciation>;
-using Phonemes = std::vector<Phoneme>;
+	void Logger::debug(const std::string &message) const {
+		log(kLogLevelDebug, message);
+	}
 
-Lyrics *getLyrics(DSSP_Lyrics lyrics);
-Pronunciations *getPronunciations(DSSP_Pronunciations pronunciations);
-Phonemes *getPhonemes(DSSP_Phonemes phonemes);
+	void Logger::info(const std::string &message) const {
+		log(kLogLevelInfo, message);
+	}
 
-#endif // DSSP_TYPES_H
+	void Logger::warn(const std::string &message) const {
+		log(kLogLevelWarning, message);
+	}
+
+	void Logger::error(const std::string &message) const {
+		log(kLogLevelError, message);
+	}
+
+	void Logger::log(int level, const std::string &message) const {
+		if (!g_logCallback) {
+			return;
+		}
+		g_logCallback(_component, level, message.c_str());
+	}
+
+}

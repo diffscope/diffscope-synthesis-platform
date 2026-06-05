@@ -16,6 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>. *
  **************************************************************************/
 
+#include "logger.h"
 #include "types.h"
 
 #include <algorithm>
@@ -23,17 +24,46 @@
 #include <iterator>
 #include <memory>
 #include <string>
+#include <string_view>
 
 #include <stdcorelib/str.h>
 #include <stdcorelib/system.h>
 
 #include <LangCore/Core/Manager.h>
 #include <LangCore/Module/Module.h>
+#include <LangCore/Support/Logging.h>
 #include <LangCore/Task/SessionTask.h>
 #include <LangCore/Task/TaskPlugin.h>
 
 namespace {
+	const dssp::Logger g_logger("native.languageconversion");
+
 	std::string g_languageConversionErrorMessage;
+
+	void logLangCoreMessage(int level, const std::string &message) {
+		if (level <= LangCore::Logger::Debug) {
+			g_logger.debug(message);
+			return;
+		}
+		if (level == LangCore::Logger::Warning) {
+			g_logger.warn(message);
+			return;
+		}
+		if (level >= LangCore::Logger::Critical) {
+			g_logger.error(message);
+			return;
+		}
+		g_logger.info(message);
+	}
+
+	void logLangCore(int level, const LangCore::LogContext &context, const std::string_view &message) {
+		std::string logMessage;
+		if (context.category && context.category[0] != '\0') {
+			logMessage = std::string(context.category) + ": ";
+		}
+		logMessage += std::string(message.data(), message.size());
+		logLangCoreMessage(level, logMessage);
+	}
 
 	std::filesystem::path getPluginRootDirectory() {
 #if defined(__APPLE__)
@@ -70,14 +100,13 @@ namespace {
 	bool initializeONNXDriver(LangCore::Manager *langMgr, DSSP_Device device) {
 		const auto onnxDriverPlugin = langMgr->plugin<LangCore::DriverPlugin>("onnx");
 		if (!onnxDriverPlugin) {
-			// TODO logger
-			std::cerr << "Failed to load ONNX inference driver" << std::endl;
+			g_logger.error("Failed to load ONNX inference driver");
 			return false;
 		}
 		const auto expOnnxDriver = onnxDriverPlugin->create();
 		if (!expOnnxDriver) {
-			// TODO logger
-			std::cerr << "Failed to create ONNX inference driver: " << expOnnxDriver.error().message() << std::endl;
+			const auto message = std::string("Failed to create ONNX inference driver: ") + expOnnxDriver.error().message();
+			g_logger.error(message);
 			return false;
 		}
 		const auto onnxDriver = expOnnxDriver.value();
@@ -92,7 +121,8 @@ namespace {
 		onnxArgs->deviceIndex = DSSP_GetDeviceIndex(device);
 
 		if (const auto exp = onnxDriver->initialize(onnxArgs); !exp) {
-			std::cerr << "Failed to initialize ONNX driver: " << exp.error().message() << std::endl;
+			const auto message = std::string("Failed to initialize ONNX driver: ") + exp.error().message();
+			g_logger.error(message);
 			return false;
 		}
 
@@ -103,6 +133,8 @@ namespace {
 }
 
 bool DSSP_InitializeLanguageConversion(DSSP_Device device) {
+	LangCore::Logger::setLogCallback(logLangCore);
+
 	const auto langMgr = LangCore::Manager::instance();
 
     const auto defaultPluginDir = getPluginRootDirectory() ;

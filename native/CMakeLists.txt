@@ -17,10 +17,12 @@ find_package(LangCore CONFIG REQUIRED)
 get_filename_component(LANGCORE_PREFIX_DIR "${LangCore_DIR}/../.." ABSOLUTE)
 set(LANGCORE_PLUGINS_DIR "$<TARGET_FILE_DIR:LangCore::LangCore>/../lib/plugins")
 set(LANGCORE_G2P_PACKAGES_DIR "${LangCore_DIR}/G2pPackages")
+find_package(PhonemeConverter CONFIG REQUIRED)
 
 qm_configure_target(dssp_native
 	LINKS_PRIVATE
 		LangCore::LangCore
+		PhonemeConverter::PhonemeConverter
 		$<$<PLATFORM_ID:Windows>:dxgi.lib>
 	INCLUDE_PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
 )

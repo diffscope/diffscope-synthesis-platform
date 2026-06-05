@@ -22,12 +22,15 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 	"net/http"
 
 	"diffscope-synthesis-platform/internal/api"
 
 	"github.com/gin-gonic/gin"
 )
+
+var logger = slog.With("component", "server.pronunciation")
 
 type pronunciationRequest struct {
 	Context *pronunciationContext `json:"context"`
@@ -69,6 +72,7 @@ type errorResponse struct {
 func PostPronunciation(c *gin.Context) {
 	var request pronunciationRequest
 	if err := decodeJSON(c, &request); err != nil || !request.isValid() {
+		logger.Error("Invalid pronunciation request", slog.Any("error", err))
 		writeBadRequest(c)
 		return
 	}
@@ -77,7 +81,7 @@ func PostPronunciation(c *gin.Context) {
 		ID:    *request.Context.Singer.ID,
 		Extra: request.Context.Singer.Extra,
 	}
-	arch, ok := architectures.Get(*request.Context.Arch)
+	arch, ok := getArchitecture(*request.Context.Arch)
 	if !ok {
 		writeError(c, newUnknownArchError())
 		return
@@ -151,7 +155,7 @@ func writeError(c *gin.Context, err error) {
 	}
 	var apiError *api.Error
 	if !errors.As(err, &apiError) {
-		// TODO: Log internal errors.
+		logger.Error("Internal error occurred", slog.Any("error", err))
 		apiError = api.NewError(api.ErrorCodeInternalError, "")
 	}
 	c.JSON(http.StatusUnprocessableEntity, errorResponse{

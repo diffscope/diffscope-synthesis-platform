@@ -39,7 +39,7 @@ Public interfaces are exposed to Go through `native/swig/native.i`. When modifyi
 
 Internal C++ code in `native/src/` follows the existing implementation style:
 
-- Use snake_case for file names, such as `execution_provider_info.cpp`.
+- Use flatcase for file names, such as `executionprovider.cpp`.
 - Use PascalCase for type names, such as `DeviceInfo` and `ExecutionProviderInfo`.
 - Use lowerCamelCase for function names, such as `getDefaultDevice` and `getExecutionProviders`.
 - Use lowerCamelCase for local variables, parameters, and struct fields, such as `executionProvider` and `defaultDevice`.

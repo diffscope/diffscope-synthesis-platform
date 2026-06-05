@@ -20,16 +20,44 @@ package server
 
 import (
 	"strings"
+	"sync"
 
 	"diffscope-synthesis-platform/internal/api"
 	"diffscope-synthesis-platform/internal/architecture"
-	"diffscope-synthesis-platform/internal/diffsinger"
 )
 
-var architectures = architecture.NewRegistry(map[string]architecture.Architecture{
-	"diffsinger": diffsinger.Architecture{},
-})
+var (
+	architecturesMu          sync.RWMutex
+	registeredArchitectures  = make(map[string]architecture.Architecture)
+	registeredArchitectureDB = architecture.NewRegistry(registeredArchitectures)
+)
+
+func RegisterArchitecture(name string, implementation architecture.Architecture) {
+	if name == "" {
+		panic("server: empty architecture name")
+	}
+	if implementation == nil {
+		panic("server: nil architecture")
+	}
+
+	architecturesMu.Lock()
+	defer architecturesMu.Unlock()
+	registeredArchitectures[name] = implementation
+	registeredArchitectureDB = architecture.NewRegistry(registeredArchitectures)
+}
+
+func getArchitecture(name string) (architecture.Architecture, bool) {
+	architecturesMu.RLock()
+	defer architecturesMu.RUnlock()
+	return registeredArchitectureDB.Get(name)
+}
+
+func registeredArchitectureNames() []string {
+	architecturesMu.RLock()
+	defer architecturesMu.RUnlock()
+	return registeredArchitectureDB.Names()
+}
 
 func newUnknownArchError() error {
-	return api.NewError(api.ErrorCodeUnknownArch, "supported architectures: "+strings.Join(architectures.Names(), ", "))
+	return api.NewError(api.ErrorCodeUnknownArch, "supported architectures: "+strings.Join(registeredArchitectureNames(), ", "))
 }

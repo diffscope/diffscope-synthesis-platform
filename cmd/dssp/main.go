@@ -23,6 +23,7 @@ import (
 	"os"
 
 	"diffscope-synthesis-platform/internal/cli"
+	_ "diffscope-synthesis-platform/internal/diffsinger"
 )
 
 func main() {

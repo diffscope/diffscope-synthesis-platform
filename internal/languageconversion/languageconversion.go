@@ -23,6 +23,7 @@ import (
 	"sync"
 
 	"diffscope-synthesis-platform/internal/executionprovider"
+	"diffscope-synthesis-platform/internal/server"
 	"diffscope-synthesis-platform/native"
 )
 
@@ -40,6 +41,16 @@ type Pronunciation struct {
 	Text       string
 	Candidates []string
 	IsError    bool
+}
+
+func init() {
+	server.RegisterStartRoutine(func() error {
+		device, err := executionprovider.ConfiguredDevice()
+		if err != nil {
+			return err
+		}
+		return Initialize(device)
+	})
 }
 
 func Initialize(device executionprovider.Device) error {
