@@ -21,7 +21,6 @@ package diffsinger
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"diffscope-synthesis-platform/internal/api"
 	"diffscope-synthesis-platform/internal/languageconversion"
@@ -52,11 +51,6 @@ func (Architecture) Pronunciation(
 ) ([]api.Pronunciation, error) {
 	_ = archExtra
 	_ = singer // TODO: Use the singer configuration when DiffSinger supports it.
-
-	limit := maxLyricCount()
-	if len(lyrics) > limit {
-		return nil, api.NewError(api.ErrorCodeLyricsTooLong, fmt.Sprintf("maximum lyric count is %d", limit))
-	}
 
 	input := make([]languageconversion.Lyric, 0, len(lyrics))
 	for _, lyric := range lyrics {

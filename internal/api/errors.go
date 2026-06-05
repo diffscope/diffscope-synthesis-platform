@@ -25,7 +25,6 @@ const (
 	ErrorCodeUnknownArch         ErrorCode = "UNKNOWN_ARCH"
 	ErrorCodeSingerNotExist      ErrorCode = "SINGER_NOT_EXIST"
 	ErrorCodeSingerConfigInvalid ErrorCode = "SINGER_CONFIG_INVALID"
-	ErrorCodeLyricsTooLong       ErrorCode = "LYRICS_TOO_LONG"
 )
 
 type Error struct {

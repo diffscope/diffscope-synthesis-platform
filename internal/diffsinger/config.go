@@ -18,14 +18,5 @@
 
 package diffsinger
 
-import "github.com/spf13/viper"
-
-const maxLyricCountConfigKey = "diffsinger_max_lyric_count"
-
 func init() {
-	viper.SetDefault(maxLyricCountConfigKey, 4096)
-}
-
-func maxLyricCount() int {
-	return viper.GetInt(maxLyricCountConfigKey)
 }
