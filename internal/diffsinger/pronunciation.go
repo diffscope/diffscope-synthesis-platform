@@ -24,7 +24,11 @@ import (
 
 	"diffscope-synthesis-platform/internal/api"
 	"diffscope-synthesis-platform/internal/languageconversion"
+
+	"github.com/diffscope/diffscope-package-manager/packageinfo"
 )
+
+const unknownG2PIdentifier = "g2p-unknown-official"
 
 type pronunciationRequest struct {
 	ctx    context.Context
@@ -50,13 +54,17 @@ func (Architecture) Pronunciation(
 	lyrics []api.Lyric,
 ) ([]api.Pronunciation, error) {
 	_ = archExtra
-	_ = singer // TODO: Use the singer configuration when DiffSinger supports it.
+
+	metadata, ok := getSingerMetadata(singer)
+	if !ok {
+		return nil, api.NewError(api.ErrorCodeSingerNotExist, "")
+	}
 
 	input := make([]languageconversion.Lyric, 0, len(lyrics))
 	for _, lyric := range lyrics {
 		input = append(input, languageconversion.Lyric{
 			Text:     lyric.Lyric,
-			Language: "g2p-" + lyric.Language + "-official", // TODO
+			Language: getLyricG2PIdentifier(metadata, lyric.Language),
 		})
 	}
 
@@ -95,13 +103,44 @@ func runPronunciationWorker() {
 	}
 }
 
+func getSingerMetadata(singer api.Singer) (SingerMetadata, bool) {
+	id, ok := getSingerIdentifier(singer)
+	if !ok {
+		return SingerMetadata{}, false
+	}
+	return GetSinger(id)
+}
+
+func getSingerIdentifier(singer api.Singer) (SingerIdentifier, bool) {
+	reference, err := packageinfo.ParsePackageReference(singer.ID)
+	if err != nil {
+		return SingerIdentifier{}, false
+	}
+	if reference.Type != packageinfo.PackageReferenceTypeSinger || reference.Version == nil {
+		return SingerIdentifier{}, false
+	}
+
+	return SingerIdentifier{
+		PackageID: reference.PackageID,
+		Version:   *reference.Version,
+		SingerID:  reference.SingerID,
+	}, true
+}
+
+func getLyricG2PIdentifier(metadata SingerMetadata, language string) string {
+	item, ok := metadata.Languages[language]
+	if !ok {
+		return unknownG2PIdentifier
+	}
+	return item.G2P
+}
+
 func convertPronunciations(pronunciations []languageconversion.Pronunciation) []api.Pronunciation {
 	result := make([]api.Pronunciation, 0, len(pronunciations))
 	for _, pronunciation := range pronunciations {
 		result = append(result, api.Pronunciation{
 			Pronunciation: pronunciation.Text,
 			Candidates:    pronunciation.Candidates,
-			Error:         pronunciation.IsError,
 		})
 	}
 	return result

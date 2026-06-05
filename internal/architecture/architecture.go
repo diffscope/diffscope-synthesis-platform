@@ -33,4 +33,10 @@ type Architecture interface {
 		singer api.Singer,
 		lyrics []api.Lyric,
 	) ([]api.Pronunciation, error)
+	Phoneme(
+		ctx context.Context,
+		archExtra json.RawMessage,
+		singer api.Singer,
+		notes []api.PronunciationNote,
+	) ([]api.PhonemeNote, error)
 }

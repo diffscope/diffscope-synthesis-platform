@@ -63,6 +63,7 @@ func StartRouter() error {
 
 	router.GET("/api/info", GetApplicationInfo)
 	router.POST("/pronunciation", PostPronunciation)
+	router.POST("/phoneme", PostPhoneme)
 
 	host := viper.GetString("host")
 	port := viper.GetInt("port")

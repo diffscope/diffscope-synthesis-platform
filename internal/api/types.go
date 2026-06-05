@@ -33,7 +33,20 @@ type Lyric struct {
 type Pronunciation struct {
 	Pronunciation string   `json:"pronunciation"`
 	Candidates    []string `json:"candidates"`
-	Error         bool     `json:"error"`
+}
+
+type PronunciationNote struct {
+	Pronunciation string `json:"pronunciation"`
+	Language      string `json:"language"`
+}
+
+type Phoneme struct {
+	Token string `json:"token"`
+	Onset bool   `json:"onset"`
+}
+
+type PhonemeNote struct {
+	Phonemes []Phoneme `json:"phonemes"`
 }
 
 type State string

@@ -18,5 +18,31 @@
 
 package diffsinger
 
+import (
+	"time"
+
+	"github.com/spf13/viper"
+)
+
 func init() {
+	viper.SetDefault("diffsinger.phoneme_cleanup_timeout_msec", 600000)
+	viper.SetDefault("diffsinger.phoneme_cleanup_interval_msec", 60000)
+	viper.SetDefault("diffsinger.phoneme_custom_worker_count", 16)
+	viper.SetDefault("diffsinger.phoneme_custom_worker_timeout_msec", 5000)
+}
+
+func getPhonemeCleanupTimeout() time.Duration {
+	return time.Duration(viper.GetInt("diffsinger.phoneme_cleanup_timeout_msec")) * time.Millisecond
+}
+
+func getPhonemeCleanupInterval() time.Duration {
+	return time.Duration(viper.GetInt("diffsinger.phoneme_cleanup_interval_msec")) * time.Millisecond
+}
+
+func getPhonemeCustomWorkerCount() int {
+	return viper.GetInt("diffsinger.phoneme_custom_worker_count")
+}
+
+func getPhonemeCustomWorkerTimeout() time.Duration {
+	return time.Duration(viper.GetInt("diffsinger.phoneme_custom_worker_timeout_msec")) * time.Millisecond
 }
