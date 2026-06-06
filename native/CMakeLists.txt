@@ -18,11 +18,16 @@ get_filename_component(LANGCORE_PREFIX_DIR "${LangCore_DIR}/../.." ABSOLUTE)
 set(LANGCORE_PLUGINS_DIR "$<TARGET_FILE_DIR:LangCore::LangCore>/../lib/plugins")
 set(LANGCORE_G2P_PACKAGES_DIR "${LangCore_DIR}/G2pPackages")
 find_package(PhonemeConverter CONFIG REQUIRED)
+find_package(synthrt CONFIG REQUIRED)
+set(SYNTHRT_PLUGINS_DIR "$<TARGET_FILE_DIR:synthrt::synthrt>/../lib/plugins")
+find_package(dsinfer CONFIG REQUIRED)
 
 qm_configure_target(dssp_native
 	LINKS_PRIVATE
 		LangCore::LangCore
 		PhonemeConverter::PhonemeConverter
+		synthrt::synthrt
+		dsinfer::dsinfer
 		$<$<PLATFORM_ID:Windows>:dxgi.lib>
 	INCLUDE_PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
@@ -43,6 +48,12 @@ add_custom_command(TARGET dssp_native POST_BUILD
 	COMMAND "${CMAKE_COMMAND}" -E copy_directory
 	"${LANGCORE_G2P_PACKAGES_DIR}"
 	"$<TARGET_FILE_DIR:dssp_native>/../share/G2pPackages"
+)
+
+add_custom_command(TARGET dssp_native POST_BUILD
+	COMMAND "${CMAKE_COMMAND}" -E copy_directory
+	"${SYNTHRT_PLUGINS_DIR}"
+	"$<TARGET_FILE_DIR:dssp_native>/../lib/plugins"
 )
 
 file(GLOB_RECURSE _headers include/*.h)
@@ -91,6 +102,10 @@ if(APPLICATION_INSTALL)
 
 	install(DIRECTORY "${LANGCORE_G2P_PACKAGES_DIR}"
 		DESTINATION "${CMAKE_INSTALL_DATADIR}"
+	)
+
+	install(DIRECTORY "${SYNTHRT_PLUGINS_DIR}"
+		DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 	)
 
 endif()

@@ -32,119 +32,123 @@
 #include <PhonemeConverter/LuaScript.h>
 #include <PhonemeConverter/RuleOnsetMarker.h>
 
-namespace {
-	const dssp::Logger g_logger("native.onsetmarker");
+namespace dssp {
 
-	enum class OnsetMarkerType {
-		Error,
-		Rule,
-		Lua,
-	};
+	namespace {
+		const dssp::Logger g_logger("native.onsetmarker");
 
-	struct OnsetMarkerHandle {
-		OnsetMarkerType type{OnsetMarkerType::Error};
-		std::string errorMessage;
-		std::unique_ptr<PhonemeConverter::RuleOnsetMarker> rule;
-		std::unique_ptr<dssp::LuaRunnerPool<PhonemeConverter::LuaOnsetMarker>> lua;
-	};
+		enum class OnsetMarkerType {
+			Error,
+			Rule,
+			Lua,
+		};
 
-	OnsetMarkerHandle *getOnsetMarker(DSSP_OnsetMarker onsetMarker) {
-		return static_cast<OnsetMarkerHandle *>(onsetMarker);
-	}
+		struct OnsetMarkerHandle {
+			OnsetMarkerType type{OnsetMarkerType::Error};
+			std::string errorMessage;
+			std::unique_ptr<PhonemeConverter::RuleOnsetMarker> rule;
+			std::unique_ptr<dssp::LuaRunnerPool<PhonemeConverter::LuaOnsetMarker>> lua;
+		};
 
-	bool isError(const OnsetMarkerHandle *onsetMarker) {
-		return !onsetMarker->errorMessage.empty();
-	}
+		OnsetMarkerHandle *getOnsetMarker(DSSP_OnsetMarker onsetMarker) {
+			return static_cast<OnsetMarkerHandle *>(onsetMarker);
+		}
 
-	void setUnknownError(OnsetMarkerHandle *onsetMarker) {
-		onsetMarker->type = OnsetMarkerType::Error;
-		onsetMarker->errorMessage = "unknown onset marker error";
-	}
+		bool isError(const OnsetMarkerHandle *onsetMarker) {
+			return !onsetMarker->errorMessage.empty();
+		}
 
-	template <typename Factory>
-	DSSP_OnsetMarker newOnsetMarker(Factory factory) {
-		auto onsetMarker = std::make_unique<OnsetMarkerHandle>();
-		try {
-			factory(*onsetMarker);
-		} catch (const std::exception &e) {
+		void setUnknownError(OnsetMarkerHandle *onsetMarker) {
 			onsetMarker->type = OnsetMarkerType::Error;
-			onsetMarker->errorMessage = e.what();
-		} catch (...) {
-			setUnknownError(onsetMarker.get());
+			onsetMarker->errorMessage = "unknown onset marker error";
 		}
-		return onsetMarker.release();
-	}
 
-	std::vector<std::string> phonemeTexts(const Phonemes *phonemes) {
-		std::vector<std::string> texts;
-		texts.reserve(phonemes->size());
-		for (const auto &phoneme : *phonemes) {
-			texts.push_back(phoneme.text);
+		template <typename Factory>
+		DSSP_OnsetMarker newOnsetMarker(Factory factory) {
+			auto onsetMarker = std::make_unique<OnsetMarkerHandle>();
+			try {
+				factory(*onsetMarker);
+			} catch (const std::exception &e) {
+				onsetMarker->type = OnsetMarkerType::Error;
+				onsetMarker->errorMessage = e.what();
+			} catch (...) {
+				setUnknownError(onsetMarker.get());
+			}
+			return onsetMarker.release();
 		}
-		return texts;
-	}
 
-	std::optional<std::vector<bool>> runLuaOnsetMarker(OnsetMarkerHandle *onsetMarker, const std::vector<std::string> &texts) {
-		auto lease = onsetMarker->lua->acquire();
-		if (!lease) {
-			return std::nullopt;
+		std::vector<std::string> phonemeTexts(const Phonemes *phonemes) {
+			std::vector<std::string> texts;
+			texts.reserve(phonemes->size());
+			for (const auto &phoneme : *phonemes) {
+				texts.push_back(phoneme.text);
+			}
+			return texts;
 		}
-		return (*lease)->mark(texts);
-	}
 
-}
+		std::optional<std::vector<bool>> runLuaOnsetMarker(OnsetMarkerHandle *onsetMarker, const std::vector<std::string> &texts) {
+			auto lease = onsetMarker->lua->acquire();
+			if (!lease) {
+				return std::nullopt;
+			}
+			return (*lease)->mark(texts);
+		}
+
+	} // namespace
+
+} // namespace dssp
 
 DSSP_OnsetMarker DSSP_NewRuleOnsetMarker(const char *rule_file_path) {
-	return newOnsetMarker([rule_file_path](OnsetMarkerHandle &onsetMarker) {
+	return dssp::newOnsetMarker([rule_file_path](dssp::OnsetMarkerHandle &onsetMarker) {
 		auto stream = dssp::openUtf8File(rule_file_path);
 		onsetMarker.rule = std::make_unique<PhonemeConverter::RuleOnsetMarker>(stream);
-		onsetMarker.type = OnsetMarkerType::Rule;
+		onsetMarker.type = dssp::OnsetMarkerType::Rule;
 	});
 }
 
 DSSP_OnsetMarker DSSP_NewCustomOnsetMarker(const char *lua_script_file_path) {
-	return newOnsetMarker([lua_script_file_path](OnsetMarkerHandle &onsetMarker) {
+	return dssp::newOnsetMarker([lua_script_file_path](dssp::OnsetMarkerHandle &onsetMarker) {
 		const auto scriptText = dssp::readUtf8File(lua_script_file_path);
 		auto script = std::make_shared<PhonemeConverter::LuaScript>(scriptText, lua_script_file_path);
 		auto pool = std::make_unique<dssp::LuaRunnerPool<PhonemeConverter::LuaOnsetMarker>>(dssp::luaRunnerCount(), [script] {
 			return std::make_unique<PhonemeConverter::LuaOnsetMarker>(*script);
 		});
 		onsetMarker.lua = std::move(pool);
-		onsetMarker.type = OnsetMarkerType::Lua;
+		onsetMarker.type = dssp::OnsetMarkerType::Lua;
 	});
 }
 
 void DSSP_DeleteOnsetMarker(DSSP_OnsetMarker onset_marker) {
-	delete getOnsetMarker(onset_marker);
+	delete dssp::getOnsetMarker(onset_marker);
 }
 
 bool DSSP_IsOnsetMarkerError(DSSP_OnsetMarker onset_marker) {
-	return isError(getOnsetMarker(onset_marker));
+	return dssp::isError(dssp::getOnsetMarker(onset_marker));
 }
 
 const char *DSSP_GetOnsetMarkerErrorMessage(DSSP_OnsetMarker onset_marker) {
-	return getOnsetMarker(onset_marker)->errorMessage.c_str();
+	return dssp::getOnsetMarker(onset_marker)->errorMessage.c_str();
 }
 
 void DSSP_RunOnsetMarker(DSSP_OnsetMarker onset_marker, DSSP_Phonemes phonemes) {
-	auto *handle = getOnsetMarker(onset_marker);
-	if (isError(handle)) {
+	auto *handle = dssp::getOnsetMarker(onset_marker);
+	if (dssp::isError(handle)) {
 		return;
 	}
 
-	auto *input = getPhonemes(phonemes);
-	const auto texts = phonemeTexts(input);
+	auto *input = dssp::getPhonemes(phonemes);
+	const auto texts = dssp::phonemeTexts(input);
 
 	try {
 		std::optional<std::vector<bool>> isOnset;
 		switch (handle->type) {
-			case OnsetMarkerType::Rule:
+			case dssp::OnsetMarkerType::Rule:
 				isOnset = handle->rule->mark(texts);
 				break;
-			case OnsetMarkerType::Lua:
-				isOnset = runLuaOnsetMarker(handle, texts);
+			case dssp::OnsetMarkerType::Lua:
+				isOnset = dssp::runLuaOnsetMarker(handle, texts);
 				break;
-			case OnsetMarkerType::Error:
+			case dssp::OnsetMarkerType::Error:
 				break;
 		}
 
@@ -152,7 +156,7 @@ void DSSP_RunOnsetMarker(DSSP_OnsetMarker onset_marker, DSSP_Phonemes phonemes) 
 			return;
 		}
 		if (isOnset->size() != input->size()) {
-			g_logger.error("Failed to run onset marker: result size does not match input size");
+			dssp::g_logger.error("Failed to run onset marker: result size does not match input size");
 			return;
 		}
 
@@ -161,15 +165,15 @@ void DSSP_RunOnsetMarker(DSSP_OnsetMarker onset_marker, DSSP_Phonemes phonemes) 
 		}
 	} catch (const std::exception &e) {
 		const auto message = std::string("Failed to run onset marker: ") + e.what();
-		g_logger.error(message);
+		dssp::g_logger.error(message);
 	} catch (...) {
-		g_logger.error("Failed to run onset marker: unknown error");
+		dssp::g_logger.error("Failed to run onset marker: unknown error");
 	}
 }
 
 void DSSP_TerminateCustomOnsetMarker(DSSP_OnsetMarker onset_marker) {
-	auto *handle = getOnsetMarker(onset_marker);
-	if (handle->type == OnsetMarkerType::Lua && handle->lua) {
+	auto *handle = dssp::getOnsetMarker(onset_marker);
+	if (handle->type == dssp::OnsetMarkerType::Lua && handle->lua) {
 		handle->lua->terminate();
 	}
 }

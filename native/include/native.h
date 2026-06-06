@@ -124,6 +124,103 @@ void DSSP_TerminateCustomOnsetMarker(DSSP_OnsetMarker onset_marker);
 
 void DSSP_SetLuaRunnerCount(size_t count);
 
+/* ========================================================================
+ * SynthRT
+ * ====================================================================== */
+
+bool DSSP_InitializeSynthRT(const char *package_path, DSSP_Device device);
+const char *DSSP_GetSynthRTErrorMessage(void);
+
+typedef struct DSSP_SRTVersionNumber {
+	int major, minor, patch, tweak;
+} DSSP_SRTVersionNumber;
+
+typedef void *DSSP_SRTPackage;
+
+// Nullable: indicates error
+DSSP_SRTPackage DSSP_GetSRTPackage(const char *package_dir, const char *package_id, DSSP_SRTVersionNumber versionNumber);
+
+typedef void *DSSP_SRTSinger;
+
+// Nullable: indicates error
+DSSP_SRTSinger DSSP_GetSRTSinger(DSSP_SRTPackage package, const char *singer_id);
+
+/* ========================================================================
+ * dsinfer (data)
+ * ====================================================================== */
+
+// Note:
+// All `Free` functions will free both the allocated memory and the content. For example, `DSSP_FreeDiffSingerWords` will free all words, phonemes, notes, and managed double arrays.
+// `Set` functions transfer ownership of the content to the target structure. For example, `DSSP_SetDiffSingerWordPhonemes` will transfer ownership of the phonemes to the word, and the caller should not free or access the phonemes after calling this function.
+
+typedef void *DSSP_DiffSingerManagedDoubleArray;
+
+DSSP_DiffSingerManagedDoubleArray DSSP_AllocateDiffSingerManagedDoubleArray(size_t count);
+void DSSP_FreeDiffSingerManagedDoubleArray(DSSP_DiffSingerManagedDoubleArray array);
+size_t DSSP_GetDiffSingerManagedDoubleArrayCount(DSSP_DiffSingerManagedDoubleArray array);
+double *DSSP_GetDiffSingerManagedDoubleArrayData(DSSP_DiffSingerManagedDoubleArray array);
+
+typedef void *DSSP_DiffSingerPhonemes;
+
+DSSP_DiffSingerPhonemes DSSP_AllocateDiffSingerPhonemes(size_t count);
+void DSSP_FreeDiffSingerPhonemes(DSSP_DiffSingerPhonemes phonemes);
+size_t DSSP_GetDiffSingerPhonemeCount(DSSP_DiffSingerPhonemes phonemes);
+const char *DSSP_GetDiffSingerPhonemeToken(DSSP_DiffSingerPhonemes phonemes, size_t index);
+void DSSP_SetDiffSingerPhonemeToken(DSSP_DiffSingerPhonemes phonemes, size_t index, const char *token);
+const char *DSSP_GetDiffSingerPhonemeLanguage(DSSP_DiffSingerPhonemes phonemes, size_t index);
+void DSSP_SetDiffSingerPhonemeLanguage(DSSP_DiffSingerPhonemes phonemes, size_t index, const char *language);
+double DSSP_GetDiffSingerPhonemeStart(DSSP_DiffSingerPhonemes phonemes, size_t index);
+void DSSP_SetDiffSingerPhonemeStart(DSSP_DiffSingerPhonemes phonemes, size_t index, double start);
+DSSP_DiffSingerManagedDoubleArray DSSP_GetDiffSingerPhonemeSpeakerProportion(DSSP_DiffSingerPhonemes phonemes, size_t index);
+void DSSP_SetDiffSingerPhonemeSpeakerProportion(DSSP_DiffSingerPhonemes phonemes, size_t index, DSSP_DiffSingerManagedDoubleArray speakerProportion);
+
+typedef void *DSSP_DiffSingerNotes;
+
+DSSP_DiffSingerNotes DSSP_AllocateDiffSingerNotes(size_t count);
+void DSSP_FreeDiffSingerNotes(DSSP_DiffSingerNotes notes);
+size_t DSSP_GetDiffSingerNoteCount(DSSP_DiffSingerNotes notes);
+int DSSP_GetDiffSingerNoteCent(DSSP_DiffSingerNotes notes, size_t index);
+void DSSP_SetDiffSingerNoteCent(DSSP_DiffSingerNotes notes, size_t index, int cent);
+double DSSP_GetDiffSingerNoteDuration(DSSP_DiffSingerNotes notes, size_t index);
+void DSSP_SetDiffSingerNoteDuration(DSSP_DiffSingerNotes notes, size_t index, double duration);
+bool DSSP_IsDiffSingerNoteRest(DSSP_DiffSingerNotes notes, size_t index);
+void DSSP_SetDiffSingerNoteRest(DSSP_DiffSingerNotes notes, size_t index, bool isRest);
+
+typedef void *DSSP_DiffSingerSpeakers;
+
+DSSP_DiffSingerSpeakers DSSP_AllocateDiffSingerSpeakers(size_t count);
+void DSSP_FreeDiffSingerSpeakers(DSSP_DiffSingerSpeakers speakers);
+size_t DSSP_GetDiffSingerSpeakerCount(DSSP_DiffSingerSpeakers speakers);
+const char *DSSP_GetDiffSingerSpeakerID(DSSP_DiffSingerSpeakers speakers, size_t index);
+void DSSP_SetDiffSingerSpeakerID(DSSP_DiffSingerSpeakers speakers, size_t index, const char *speakerID);
+
+typedef void *DSSP_DiffSingerWords;
+
+DSSP_DiffSingerWords DSSP_AllocateDiffSingerWords(size_t count);
+void DSSP_FreeDiffSingerWords(DSSP_DiffSingerWords words);
+size_t DSSP_GetDiffSingerWordCount(DSSP_DiffSingerWords words);
+DSSP_DiffSingerPhonemes DSSP_GetDiffSingerWordPhonemes(DSSP_DiffSingerWords words, size_t index);
+void DSSP_SetDiffSingerWordPhonemes(DSSP_DiffSingerWords words, size_t index, DSSP_DiffSingerPhonemes phonemes);
+DSSP_DiffSingerNotes DSSP_GetDiffSingerWordNotes(DSSP_DiffSingerWords words, size_t index);
+void DSSP_SetDiffSingerWordNotes(DSSP_DiffSingerWords words, size_t index, DSSP_DiffSingerNotes notes);
+DSSP_DiffSingerSpeakers DSSP_GetDiffSingerWordSpeakers(DSSP_DiffSingerWords words, size_t index);
+void DSSP_SetDiffSingerWordSpeakers(DSSP_DiffSingerWords words, size_t index, DSSP_DiffSingerSpeakers speakers);
+
+/* ========================================================================
+ * dsinfer (inference)
+ * ====================================================================== */
+
+// typedef void *DSSP_DiffSingerDurationInference;
+
+// DSSP_DiffSingerDurationInference DSSP_CreateDiffSingerDurationInference(DSSP_SRTSinger singer);
+// void DSSP_DeleteDiffSingerDurationInference(DSSP_DiffSingerDurationInference inference);
+// bool DSSP_IsDiffSingerDurationInferenceError(DSSP_DiffSingerDurationInference inference);
+// const char *DSSP_GetDiffSingerDurationInferenceErrorMessage(DSSP_DiffSingerDurationInference inference);
+
+// // Nullable: indicates error
+// // Reentrant but not thread-safe
+// DSSP_DiffSingerManagedDoubleArray DSSP_RunDiffSingerDurationInference(DSSP_DiffSingerDurationInference inference, DSSP_DiffSingerWords words);
+
 #ifdef __cplusplus
 }
 #endif

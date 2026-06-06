@@ -16,40 +16,54 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>. *
  **************************************************************************/
 
-#ifndef DSSP_TYPES_H
-#define DSSP_TYPES_H
+#ifndef DSSP_DSINFERDATA_H
+#define DSSP_DSINFERDATA_H
 
 #include "native.h"
 
+#include <memory>
 #include <string>
 #include <vector>
 
 namespace dssp {
 
-	struct Lyric {
-		std::string text;
+	using DiffSingerManagedDoubleArray = std::vector<double>;
+
+	struct DiffSingerPhoneme {
+		std::string token;
 		std::string language;
+		double start = 0.0;
+		std::unique_ptr<DiffSingerManagedDoubleArray> speakerProportion;
 	};
 
-	struct Pronunciation {
-		std::string text;
-		std::vector<std::string> candidates;
-		bool isError;
+	struct DiffSingerNote {
+		int cent = 0;
+		double duration = 0.0;
+		bool isRest = false;
 	};
 
-	struct Phoneme {
-		std::string text;
-		bool isOnset;
+	struct DiffSingerSpeaker {
+		std::string id;
 	};
 
-	using Lyrics = std::vector<Lyric>;
-	using Pronunciations = std::vector<Pronunciation>;
-	using Phonemes = std::vector<Phoneme>;
+	using DiffSingerPhonemes = std::vector<DiffSingerPhoneme>;
+	using DiffSingerNotes = std::vector<DiffSingerNote>;
+	using DiffSingerSpeakers = std::vector<DiffSingerSpeaker>;
 
-	Lyrics *getLyrics(DSSP_Lyrics lyrics);
-	Pronunciations *getPronunciations(DSSP_Pronunciations pronunciations);
-	Phonemes *getPhonemes(DSSP_Phonemes phonemes);
+	struct DiffSingerWord {
+		std::unique_ptr<DiffSingerPhonemes> phonemes;
+		std::unique_ptr<DiffSingerNotes> notes;
+		std::unique_ptr<DiffSingerSpeakers> speakers;
+	};
+
+	using DiffSingerWords = std::vector<DiffSingerWord>;
+
+	DiffSingerManagedDoubleArray *getDiffSingerManagedDoubleArray(DSSP_DiffSingerManagedDoubleArray array);
+	DiffSingerPhonemes *getDiffSingerPhonemes(DSSP_DiffSingerPhonemes phonemes);
+	DiffSingerNotes *getDiffSingerNotes(DSSP_DiffSingerNotes notes);
+	DiffSingerSpeakers *getDiffSingerSpeakers(DSSP_DiffSingerSpeakers speakers);
+	DiffSingerWords *getDiffSingerWords(DSSP_DiffSingerWords words);
 
 } // namespace dssp
 
-#endif // DSSP_TYPES_H
+#endif // DSSP_DSINFERDATA_H

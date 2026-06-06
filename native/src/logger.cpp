@@ -18,20 +18,16 @@
 
 #include "logger.h"
 
-namespace {
-	constexpr auto kLogLevelDebug = -4;
-	constexpr auto kLogLevelInfo = 0;
-	constexpr auto kLogLevelWarning = 4;
-	constexpr auto kLogLevelError = 8;
-
-	DSSP_LogCallback g_logCallback = nullptr;
-}
-
-void DSSP_SetLogCallback(DSSP_LogCallback log_callback) {
-	g_logCallback = log_callback;
-}
-
 namespace dssp {
+
+	namespace {
+		constexpr auto kLogLevelDebug = -4;
+		constexpr auto kLogLevelInfo = 0;
+		constexpr auto kLogLevelWarning = 4;
+		constexpr auto kLogLevelError = 8;
+
+		DSSP_LogCallback g_logCallback = nullptr;
+	} // namespace
 
 	Logger::Logger(const char *component) : _component(component) {
 	}
@@ -59,4 +55,8 @@ namespace dssp {
 		g_logCallback(_component, level, message.c_str());
 	}
 
+} // namespace dssp
+
+void DSSP_SetLogCallback(DSSP_LogCallback log_callback) {
+	dssp::g_logCallback = log_callback;
 }

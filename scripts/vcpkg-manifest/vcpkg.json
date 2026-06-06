@@ -2,12 +2,8 @@
     "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
     "dependencies": [
         "qmsetup",
-        {
-            "name": "language-manager",
-            "features": [
-                "install-ort"
-            ]
-        }
+        "language-manager",
+        "synthrt"
     ],
     "features": {
         "cuda11": {
@@ -16,6 +12,12 @@
             "dependencies": [
                 {
                     "name": "language-manager",
+                    "features": [
+                        "cuda11"
+                    ]
+                },
+                {
+                    "name": "synthrt",
                     "features": [
                         "cuda11"
                     ]
@@ -28,6 +30,12 @@
             "dependencies": [
                 {
                     "name": "language-manager",
+                    "features": [
+                        "cuda12"
+                    ]
+                },
+                {
+                    "name": "synthrt",
                     "features": [
                         "cuda12"
                     ]

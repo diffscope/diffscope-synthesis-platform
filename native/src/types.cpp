@@ -18,95 +18,99 @@
 
 #include "types.h"
 
-Lyrics *getLyrics(DSSP_Lyrics lyrics) {
-	return static_cast<Lyrics *>(lyrics);
-}
+namespace dssp {
 
-Pronunciations *getPronunciations(DSSP_Pronunciations pronunciations) {
-	return static_cast<Pronunciations *>(pronunciations);
-}
+	Lyrics *getLyrics(DSSP_Lyrics lyrics) {
+		return static_cast<Lyrics *>(lyrics);
+	}
 
-Phonemes *getPhonemes(DSSP_Phonemes phonemes) {
-	return static_cast<Phonemes *>(phonemes);
-}
+	Pronunciations *getPronunciations(DSSP_Pronunciations pronunciations) {
+		return static_cast<Pronunciations *>(pronunciations);
+	}
+
+	Phonemes *getPhonemes(DSSP_Phonemes phonemes) {
+		return static_cast<Phonemes *>(phonemes);
+	}
+
+} // namespace dssp
 
 DSSP_Lyrics DSSP_AllocateLyrics(size_t count) {
-	return new Lyrics(count);
+	return new dssp::Lyrics(count);
 }
 
 void DSSP_FreeLyrics(DSSP_Lyrics lyrics) {
-	delete getLyrics(lyrics);
+	delete dssp::getLyrics(lyrics);
 }
 
 size_t DSSP_GetLyricCount(DSSP_Lyrics lyrics) {
-	const auto *result = getLyrics(lyrics);
+	const auto *result = dssp::getLyrics(lyrics);
 	return result->size();
 }
 
 void DSSP_SetLyricText(DSSP_Lyrics lyrics, size_t index, const char *text) {
-	auto *result = getLyrics(lyrics);
+	auto *result = dssp::getLyrics(lyrics);
 	result->at(index).text = text;
 }
 
 void DSSP_SetLyricLanguage(DSSP_Lyrics lyrics, size_t index, const char *language) {
-	auto *result = getLyrics(lyrics);
+	auto *result = dssp::getLyrics(lyrics);
 	result->at(index).language = language;
 }
 
 const char *DSSP_GetLyricText(DSSP_Lyrics lyrics, size_t index) {
-	const auto *result = getLyrics(lyrics);
+	const auto *result = dssp::getLyrics(lyrics);
 	return result->at(index).text.c_str();
 }
 
 const char *DSSP_GetLyricLanguage(DSSP_Lyrics lyrics, size_t index) {
-	const auto *result = getLyrics(lyrics);
+	const auto *result = dssp::getLyrics(lyrics);
 	return result->at(index).language.c_str();
 }
 
 void DSSP_FreePronunciations(DSSP_Pronunciations pronunciations) {
-	delete getPronunciations(pronunciations);
+	delete dssp::getPronunciations(pronunciations);
 }
 
 size_t DSSP_GetPronunciationCount(DSSP_Pronunciations pronunciations) {
-	const auto *result = getPronunciations(pronunciations);
+	const auto *result = dssp::getPronunciations(pronunciations);
 	return result->size();
 }
 
 const char *DSSP_GetPronunciationText(DSSP_Pronunciations pronunciations, size_t index) {
-	const auto *result = getPronunciations(pronunciations);
+	const auto *result = dssp::getPronunciations(pronunciations);
 	return result->at(index).text.c_str();
 }
 
 size_t DSSP_GetPronunciationCandidateCount(DSSP_Pronunciations pronunciations, size_t index) {
-	const auto *result = getPronunciations(pronunciations);
+	const auto *result = dssp::getPronunciations(pronunciations);
 	return result->at(index).candidates.size();
 }
 
 const char *DSSP_GetPronunciationCandidate(DSSP_Pronunciations pronunciations, size_t index, size_t candidate_index) {
-	const auto *result = getPronunciations(pronunciations);
+	const auto *result = dssp::getPronunciations(pronunciations);
 	return result->at(index).candidates.at(candidate_index).c_str();
 }
 
 bool DSSP_IsPronunciationError(DSSP_Pronunciations pronunciations, size_t index) {
-	const auto *result = getPronunciations(pronunciations);
+	const auto *result = dssp::getPronunciations(pronunciations);
 	return result->at(index).isError;
 }
 
 void DSSP_FreePhonemes(DSSP_Phonemes phonemes) {
-	delete getPhonemes(phonemes);
+	delete dssp::getPhonemes(phonemes);
 }
 
 size_t DSSP_GetPhonemeCount(DSSP_Phonemes phonemes) {
-	const auto *result = getPhonemes(phonemes);
+	const auto *result = dssp::getPhonemes(phonemes);
 	return result->size();
 }
 
 const char *DSSP_GetPhonemeText(DSSP_Phonemes phonemes, size_t index) {
-	const auto *result = getPhonemes(phonemes);
+	const auto *result = dssp::getPhonemes(phonemes);
 	return result->at(index).text.c_str();
 }
 
 bool DSSP_IsPhonemeOnset(DSSP_Phonemes phonemes, size_t index) {
-	const auto *result = getPhonemes(phonemes);
+	const auto *result = dssp::getPhonemes(phonemes);
 	return result->at(index).isOnset;
 }

@@ -29,12 +29,11 @@ import (
 	"strings"
 	"sync"
 
-	"diffscope-synthesis-platform/internal/server"
+	"diffscope-synthesis-platform/internal/synthrt"
 
 	"github.com/diffscope/diffscope-package-manager/packagedatabase"
 	"github.com/diffscope/diffscope-package-manager/packagedatabase/model"
 	"github.com/diffscope/diffscope-package-manager/packageinfo"
-	"github.com/spf13/viper"
 )
 
 var logger = slog.With("component", "diffsinger.singer")
@@ -71,6 +70,7 @@ type SingerMetadata struct {
 	Version          packageinfo.PackageVersion
 	PackageDirectory string
 	SingerConfigPath string
+	SynthRTSinger    *synthrt.Singer
 
 	Avatar     *packageinfo.MultilingualText
 	Background *packageinfo.MultilingualText
@@ -101,12 +101,6 @@ var (
 	singerMetadataMu sync.RWMutex
 	singerMetadata   = make(map[SingerIdentifier]SingerMetadata)
 )
-
-func init() {
-	server.RegisterStartRoutine(func() error {
-		return RefreshSingerRegistry(viper.GetString("package_dir"))
-	})
-}
 
 func GetSinger(id SingerIdentifier) (SingerMetadata, bool) {
 	singerMetadataMu.RLock()
@@ -308,6 +302,17 @@ func LoadSingerMetadata(packagesDir string) (map[SingerIdentifier]SingerMetadata
 			logLoadError(id.PackageID, id.Version.String(), id.SingerID, singerConfigPath, err)
 			continue
 		}
+		srtPackage, err := synthrt.GetPackage(packageDir, id.PackageID, synthRTVersionNumber(id.Version))
+		if err != nil {
+			logLoadError(id.PackageID, id.Version.String(), id.SingerID, singerConfigPath, fmt.Errorf("load SynthRT package: %w", err))
+			continue
+		}
+		srtSinger, err := srtPackage.Singer(id.SingerID)
+		if err != nil {
+			logLoadError(id.PackageID, id.Version.String(), id.SingerID, singerConfigPath, fmt.Errorf("load SynthRT singer: %w", err))
+			continue
+		}
+		item.SynthRTSinger = srtSinger
 		metadata[id] = item
 		logger.Info(
 			"Loaded singer metadata",
@@ -537,6 +542,15 @@ func isValidS2PMode(mode S2PMode) bool {
 
 func installedPackageDir(packagesDir string, packageID string, version string) string {
 	return filepath.Join(packagesDir, url.PathEscape(packageID)+"@"+version)
+}
+
+func synthRTVersionNumber(version packageinfo.PackageVersion) synthrt.VersionNumber {
+	return synthrt.VersionNumber{
+		Major: int(version.Major),
+		Minor: int(version.Minor),
+		Patch: int(version.Patch),
+		Tweak: int(version.Build),
+	}
 }
 
 func cleanPackageRelativePath(value string) string {

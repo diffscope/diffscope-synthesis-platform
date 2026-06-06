@@ -18,10 +18,37 @@
 
 package diffsinger
 
-import "diffscope-synthesis-platform/internal/server"
+import (
+	"diffscope-synthesis-platform/internal/executionprovider"
+	"diffscope-synthesis-platform/internal/languageconversion"
+	"diffscope-synthesis-platform/internal/phonemeconversion"
+	"diffscope-synthesis-platform/internal/server"
+	"diffscope-synthesis-platform/internal/synthrt"
+
+	"github.com/spf13/viper"
+)
 
 type Architecture struct{}
 
 func init() {
 	server.RegisterArchitecture("diffsinger", Architecture{})
+	server.RegisterStartRoutine(func() error {
+		device, err := executionprovider.ConfiguredDevice()
+		if err != nil {
+			return err
+		}
+		packageDir := viper.GetString("package_dir")
+		if err := synthrt.Initialize(packageDir, device); err != nil {
+			return err
+		}
+		if err := languageconversion.Initialize(device); err != nil {
+			return err
+		}
+		if err := RefreshSingerRegistry(packageDir); err != nil {
+			return err
+		}
+		phonemeconversion.SetLuaRunnerCount(getPhonemeCustomWorkerCount())
+		configurePhonemeResourceManagers()
+		return nil
+	})
 }

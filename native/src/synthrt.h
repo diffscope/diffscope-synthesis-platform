@@ -16,40 +16,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>. *
  **************************************************************************/
 
-#ifndef DSSP_TYPES_H
-#define DSSP_TYPES_H
+#ifndef DSSP_SYNTHRT_H
+#define DSSP_SYNTHRT_H
 
 #include "native.h"
 
-#include <string>
-#include <vector>
+#include <synthrt/Core/PackageRef.h>
+#include <synthrt/SVS/SingerContrib.h>
 
 namespace dssp {
 
-	struct Lyric {
-		std::string text;
-		std::string language;
-	};
-
-	struct Pronunciation {
-		std::string text;
-		std::vector<std::string> candidates;
-		bool isError;
-	};
-
-	struct Phoneme {
-		std::string text;
-		bool isOnset;
-	};
-
-	using Lyrics = std::vector<Lyric>;
-	using Pronunciations = std::vector<Pronunciation>;
-	using Phonemes = std::vector<Phoneme>;
-
-	Lyrics *getLyrics(DSSP_Lyrics lyrics);
-	Pronunciations *getPronunciations(DSSP_Pronunciations pronunciations);
-	Phonemes *getPhonemes(DSSP_Phonemes phonemes);
+	srt::PackageRef *getSRTPackage(DSSP_SRTPackage package);
+	srt::SingerSpec *getSRTSinger(DSSP_SRTSinger singer);
 
 } // namespace dssp
 
-#endif // DSSP_TYPES_H
+#endif // DSSP_SYNTHRT_H

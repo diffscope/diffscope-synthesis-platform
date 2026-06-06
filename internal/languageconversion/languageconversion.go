@@ -23,13 +23,13 @@ import (
 	"sync"
 
 	"diffscope-synthesis-platform/internal/executionprovider"
-	"diffscope-synthesis-platform/internal/server"
 	"diffscope-synthesis-platform/native"
 )
 
 var (
 	initializeOnce sync.Once
 	initializeErr  error
+	initialized    bool
 )
 
 type Lyric struct {
@@ -43,19 +43,10 @@ type Pronunciation struct {
 	IsError    bool
 }
 
-func init() {
-	server.RegisterStartRoutine(func() error {
-		device, err := executionprovider.ConfiguredDevice()
-		if err != nil {
-			return err
-		}
-		return Initialize(device)
-	})
-}
-
 func Initialize(device executionprovider.Device) error {
 	initializeOnce.Do(func() {
 		if native.DSSP_InitializeLanguageConversion(device.Handle()) {
+			initialized = true
 			return
 		}
 
@@ -69,6 +60,10 @@ func Initialize(device executionprovider.Device) error {
 }
 
 func Convert(lyrics []Lyric) []Pronunciation {
+	if !initialized {
+		panic("language conversion: not initialized")
+	}
+
 	input := native.DSSP_AllocateLyrics(int64(len(lyrics)))
 	defer native.DSSP_FreeLyrics(input)
 

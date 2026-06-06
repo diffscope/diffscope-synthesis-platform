@@ -31,7 +31,6 @@ import (
 
 	"diffscope-synthesis-platform/internal/api"
 	"diffscope-synthesis-platform/internal/phonemeconversion"
-	"diffscope-synthesis-platform/internal/server"
 	"diffscope-synthesis-platform/internal/utils"
 )
 
@@ -118,14 +117,6 @@ var (
 	s2pFileHashes   = make(map[singerLanguageKey]string)
 	onsetFileHashes = make(map[singerLanguageKey]string)
 )
-
-func init() {
-	server.RegisterStartRoutine(func() error {
-		phonemeconversion.SetLuaRunnerCount(getPhonemeCustomWorkerCount())
-		configurePhonemeResourceManagers()
-		return nil
-	})
-}
 
 func (Architecture) Phoneme(
 	ctx context.Context,
