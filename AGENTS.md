@@ -14,7 +14,7 @@ DiffScope Synthesis Platform is the synthesis backend for DiffScope. The project
 
 ## Default Behavior When Modifying Code
 
-- Unless the user explicitly asks to build, run tests, or execute the program, **do not** proactively build, test, or run the program after making code changes.
+- Unless the user explicitly asks to build, create tests, run tests, or execute the program, **do not** proactively build, test, or run the program after making code changes.
 - By default, perform only the necessary static checks, such as reading the relevant files, inspecting the diff, and running `gofmt` as needed when modifying Go files.
 - Do not treat `cmake --build`, `cmake --install`, `go test`, `ctest`, or running `dssp` as default finishing steps for code modification tasks.
 - If the user explicitly requests verification, prefer the smallest build or test command that matches the scope of the changes, and state which commands were actually run in the response.

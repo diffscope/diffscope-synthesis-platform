@@ -28,6 +28,7 @@
 #include <mutex>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 
@@ -39,11 +40,37 @@
 
 #include <synthrt/Core/Contribute.h>
 #include <synthrt/Core/SynthUnit.h>
+#include <synthrt/Support/Logging.h>
 
 namespace dssp {
 
 	namespace {
 		const dssp::Logger g_logger("native.synthrt");
+
+		void logSynthRTMessage(int level, const std::string &message) {
+			if (level <= srt::Logger::Debug) {
+				g_logger.debug(message);
+				return;
+			}
+			if (level == srt::Logger::Warning) {
+				g_logger.warn(message);
+				return;
+			}
+			if (level >= srt::Logger::Critical) {
+				g_logger.error(message);
+				return;
+			}
+			g_logger.info(message);
+		}
+
+		void logSynthRT(int level, const srt::LogContext &context, const std::string_view &message) {
+			std::string logMessage;
+			if (context.category && context.category[0] != '\0') {
+				logMessage = std::string(context.category) + ": ";
+			}
+			logMessage += std::string(message.data(), message.size());
+			logSynthRTMessage(level, logMessage);
+		}
 
 		struct PackageKey {
 			std::string id;
@@ -208,6 +235,8 @@ namespace dssp {
 
 bool DSSP_InitializeSynthRT(const char *package_path, DSSP_Device device) {
 	std::lock_guard lock(dssp::g_synthRTMutex);
+	srt::Logger::setLogCallback(dssp::logSynthRT);
+
 	if (dssp::g_synthUnit) {
 		dssp::g_synthUnit->addPackagePath(dssp::pathFromUtf8(package_path));
 		dssp::clearErrorMessage();

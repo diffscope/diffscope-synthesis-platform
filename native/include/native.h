@@ -210,16 +210,25 @@ void DSSP_SetDiffSingerWordSpeakers(DSSP_DiffSingerWords words, size_t index, DS
  * dsinfer (inference)
  * ====================================================================== */
 
-// typedef void *DSSP_DiffSingerDurationInference;
+typedef void *DSSP_DiffSingerDurationInference;
 
-// DSSP_DiffSingerDurationInference DSSP_CreateDiffSingerDurationInference(DSSP_SRTSinger singer);
-// void DSSP_DeleteDiffSingerDurationInference(DSSP_DiffSingerDurationInference inference);
-// bool DSSP_IsDiffSingerDurationInferenceError(DSSP_DiffSingerDurationInference inference);
-// const char *DSSP_GetDiffSingerDurationInferenceErrorMessage(DSSP_DiffSingerDurationInference inference);
+DSSP_DiffSingerDurationInference DSSP_GetDiffSingerDurationInference(DSSP_SRTSinger singer);
+const char *DSSP_GetDiffSingerDurationInferenceSpeakerID(DSSP_SRTSinger singer, const char *singer_speaker_id);
 
-// // Nullable: indicates error
-// // Reentrant but not thread-safe
-// DSSP_DiffSingerManagedDoubleArray DSSP_RunDiffSingerDurationInference(DSSP_DiffSingerDurationInference inference, DSSP_DiffSingerWords words);
+typedef void *DSSP_DiffSingerDurationInferenceTask;
+
+DSSP_DiffSingerDurationInferenceTask DSSP_CreateDiffSingerDurationInferenceTask(DSSP_DiffSingerDurationInference inference);
+void DSSP_DeleteDiffSingerDurationInferenceTask(DSSP_DiffSingerDurationInferenceTask task);
+bool DSSP_IsDiffSingerDurationInferenceTaskError(DSSP_DiffSingerDurationInferenceTask task);
+const char *DSSP_GetDiffSingerDurationInferenceErrorMessage(DSSP_DiffSingerDurationInferenceTask task);
+DSSP_DiffSingerDurationInference DSSP_GetDiffSingerDurationInferenceTaskInference(DSSP_DiffSingerDurationInferenceTask task);
+
+// Nullable: indicates error
+// Reentrant but not thread-safe
+DSSP_DiffSingerManagedDoubleArray DSSP_RunDiffSingerDurationInferenceTask(DSSP_DiffSingerDurationInferenceTask task, double duration, DSSP_DiffSingerWords words);
+
+// thread-safe
+void DSSP_TerminateDiffSingerDurationInferenceTask(DSSP_DiffSingerDurationInferenceTask task);
 
 #ifdef __cplusplus
 }

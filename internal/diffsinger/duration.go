@@ -16,65 +16,55 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>. *
  **************************************************************************/
 
-package server
+package diffsinger
 
 import (
-	"fmt"
-	"sync"
+	"context"
+	"encoding/json"
 
-	"github.com/gin-contrib/gzip"
-	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
+	"diffscope-synthesis-platform/internal/api"
 )
 
-type StartRoutine func() error
+func (Architecture) Duration(
+	ctx context.Context,
+	archExtra json.RawMessage,
+	singers []api.Singer,
+	mix [][]float64,
+	mixSampleRate float64,
+	pieceDuration float64,
+	notes []api.DurationNote,
+) (<-chan api.DurationEvent, error) {
+	_ = archExtra
+	_ = mix
+	_ = mixSampleRate
+	_ = pieceDuration
 
-var (
-	startRoutinesMu sync.Mutex
-	startRoutines   []StartRoutine
-)
-
-func RegisterStartRoutine(routine StartRoutine) {
-	if routine == nil {
-		panic("server: nil start routine")
-	}
-
-	startRoutinesMu.Lock()
-	defer startRoutinesMu.Unlock()
-	startRoutines = append(startRoutines, routine)
-}
-
-func runStartRoutines() error {
-	startRoutinesMu.Lock()
-	routines := append([]StartRoutine(nil), startRoutines...)
-	startRoutinesMu.Unlock()
-
-	for _, routine := range routines {
-		if err := routine(); err != nil {
-			return err
+	for _, singer := range singers {
+		if _, ok := getSingerMetadata(singer); !ok {
+			return nil, api.NewError(api.ErrorCodeSingerNotExist, "")
 		}
 	}
-	return nil
-}
-
-func StartRouter() error {
-	router := gin.Default()
-	router.Use(gzip.Gzip(gzip.DefaultCompression))
-
-	router.GET("/api/info", GetApplicationInfo)
-	router.POST("/api/synth/pronunciation", PostPronunciation)
-	router.POST("/api/synth/phoneme", PostPhoneme)
-	router.POST("/api/synth/duration", PostDuration)
-
-	host := viper.GetString("host")
-	port := viper.GetInt("port")
-
-	return router.Run(fmt.Sprintf("%s:%d", host, port))
-}
-
-func StartServer() error {
-	if err := runStartRoutines(); err != nil {
-		return err
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
-	return StartRouter()
+
+	events := make(chan api.DurationEvent, 1)
+	events <- api.DurationEvent{
+		State:  api.StateComplete,
+		Output: makeEmptyDurationOutput(notes),
+	}
+	close(events)
+	return events, nil
+}
+
+func makeEmptyDurationOutput(notes []api.DurationNote) api.DurationOutput {
+	result := api.DurationOutput{
+		Notes: make([]api.DurationOutputNote, len(notes)),
+	}
+	for noteIndex, note := range notes {
+		result.Notes[noteIndex] = api.DurationOutputNote{
+			Phonemes: make([]api.DurationOutputPhoneme, len(note.Phonemes)),
+		}
+	}
+	return result
 }

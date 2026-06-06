@@ -20,6 +20,7 @@
 
 #include <memory>
 #include <stdexcept>
+#include <utility>
 
 namespace dssp {
 
@@ -59,6 +60,47 @@ namespace dssp {
 			return std::unique_ptr<DiffSingerSpeakers>(result);
 		}
 
+		ds::Api::Common::L1::InputNoteInfo toDsinferInputNoteInfo(const DiffSingerNote &note) {
+			ds::Api::Common::L1::InputNoteInfo result;
+			result.key = note.cent / 100;
+			result.cents = note.cent % 100;
+			if (result.cents >= 50) {
+				++result.key;
+				result.cents -= 100;
+			} else if (result.cents < -50) {
+				--result.key;
+				result.cents += 100;
+			}
+			result.duration = note.duration;
+			result.is_rest = note.isRest;
+			return result;
+		}
+
+		ds::Api::Common::L1::InputPhonemeInfo toDsinferInputPhonemeInfo(
+			const DiffSingerPhoneme &phoneme,
+			const DiffSingerSpeakers &speakers
+		) {
+			if (!phoneme.speakerProportion) {
+				throw std::invalid_argument("phoneme.speakerProportion");
+			}
+			if (phoneme.speakerProportion->size() != speakers.size()) {
+				throw std::invalid_argument("phoneme.speakerProportion");
+			}
+
+			ds::Api::Common::L1::InputPhonemeInfo result;
+			result.token = phoneme.token;
+			result.language = phoneme.language;
+			result.start = phoneme.start;
+			result.speakers.reserve(speakers.size());
+			for (size_t i = 0; i < speakers.size(); ++i) {
+				ds::Api::Common::L1::InputPhonemeInfo::Speaker speaker;
+				speaker.name = speakers.at(i).id;
+				speaker.proportion = phoneme.speakerProportion->at(i);
+				result.speakers.push_back(std::move(speaker));
+			}
+			return result;
+		}
+
 	} // namespace
 
 	DiffSingerManagedDoubleArray *getDiffSingerManagedDoubleArray(DSSP_DiffSingerManagedDoubleArray array) {
@@ -79,6 +121,42 @@ namespace dssp {
 
 	DiffSingerWords *getDiffSingerWords(DSSP_DiffSingerWords words) {
 		return static_cast<DiffSingerWords *>(words);
+	}
+
+	ds::Api::Common::L1::InputWordInfo toDsinferInputWordInfo(const DiffSingerWord &word) {
+		if (!word.phonemes) {
+			throw std::invalid_argument("word.phonemes");
+		}
+		if (!word.notes) {
+			throw std::invalid_argument("word.notes");
+		}
+		if (!word.speakers) {
+			throw std::invalid_argument("word.speakers");
+		}
+		if (word.speakers->empty()) {
+			throw std::invalid_argument("word.speakers");
+		}
+
+		ds::Api::Common::L1::InputWordInfo result;
+		result.phones.reserve(word.phonemes->size());
+		for (const auto &phoneme : *word.phonemes) {
+			result.phones.push_back(toDsinferInputPhonemeInfo(phoneme, *word.speakers));
+		}
+
+		result.notes.reserve(word.notes->size());
+		for (const auto &note : *word.notes) {
+			result.notes.push_back(toDsinferInputNoteInfo(note));
+		}
+		return result;
+	}
+
+	std::vector<ds::Api::Common::L1::InputWordInfo> toDsinferInputWordInfos(const DiffSingerWords &words) {
+		std::vector<ds::Api::Common::L1::InputWordInfo> result;
+		result.reserve(words.size());
+		for (const auto &word : words) {
+			result.push_back(toDsinferInputWordInfo(word));
+		}
+		return result;
 	}
 
 } // namespace dssp

@@ -39,4 +39,13 @@ type Architecture interface {
 		singer api.Singer,
 		notes []api.PronunciationNote,
 	) ([]api.PhonemeNote, error)
+	Duration(
+		ctx context.Context,
+		archExtra json.RawMessage,
+		singers []api.Singer,
+		mix [][]float64,
+		mixSampleRate float64,
+		pieceDuration float64,
+		notes []api.DurationNote,
+	) (<-chan api.DurationEvent, error)
 }

@@ -25,6 +25,8 @@
 #include <string>
 #include <vector>
 
+#include <dsinfer/Api/Inferences/Common/1/CommonApiL1.h>
+
 namespace dssp {
 
 	using DiffSingerManagedDoubleArray = std::vector<double>;
@@ -63,6 +65,9 @@ namespace dssp {
 	DiffSingerNotes *getDiffSingerNotes(DSSP_DiffSingerNotes notes);
 	DiffSingerSpeakers *getDiffSingerSpeakers(DSSP_DiffSingerSpeakers speakers);
 	DiffSingerWords *getDiffSingerWords(DSSP_DiffSingerWords words);
+
+	ds::Api::Common::L1::InputWordInfo toDsinferInputWordInfo(const DiffSingerWord &word);
+	std::vector<ds::Api::Common::L1::InputWordInfo> toDsinferInputWordInfos(const DiffSingerWords &words);
 
 } // namespace dssp
 

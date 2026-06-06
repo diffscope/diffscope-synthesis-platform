@@ -49,11 +49,55 @@ type PhonemeNote struct {
 	Phonemes []Phoneme `json:"phonemes"`
 }
 
+type DurationInput struct {
+	PieceDuration float64        `json:"piece_duration"`
+	Notes         []DurationNote `json:"notes"`
+}
+
+type DurationNote struct {
+	Position      NotePosition           `json:"position"`
+	Cent          float64                `json:"cent"`
+	Pronunciation string                 `json:"pronunciation"`
+	Language      string                 `json:"language"`
+	Phonemes      []DurationInputPhoneme `json:"phonemes"`
+}
+
+type NotePosition struct {
+	Gap      float64 `json:"gap"`
+	Duration float64 `json:"duration"`
+}
+
+type DurationInputPhoneme struct {
+	Token    string `json:"token"`
+	Onset    bool   `json:"onset"`
+	Language string `json:"language"`
+}
+
+type DurationOutput struct {
+	Notes []DurationOutputNote `json:"notes"`
+}
+
+type DurationOutputNote struct {
+	Phonemes []DurationOutputPhoneme `json:"phonemes"`
+}
+
+type DurationOutputPhoneme struct {
+	Start float64 `json:"start"`
+}
+
+type DurationEvent struct {
+	State  State
+	Output DurationOutput
+	Err    error
+}
+
 type State string
 
 const (
-	StatePlanned  State = "PLANNED"
-	StatePending  State = "PENDING"
-	StateComplete State = "COMPLETE"
-	StateError    State = "ERROR"
+	StatePlanned    State = "PLANNED"
+	StatePending    State = "PENDING"
+	StateQueuing    State = "QUEUING"
+	StateProcessing State = "PROCESSING"
+	StateComplete   State = "COMPLETE"
+	StateError      State = "ERROR"
 )
