@@ -30,6 +30,10 @@ import (
 
 type Architecture struct{}
 
+type SingerExtra struct {
+	Speaker string `json:"speaker"`
+}
+
 func init() {
 	server.RegisterArchitecture("diffsinger", Architecture{})
 	server.RegisterStartRoutine(func() error {
@@ -49,6 +53,7 @@ func init() {
 		}
 		phonemeconversion.SetLuaRunnerCount(getPhonemeCustomWorkerCount())
 		configurePhonemeResourceManagers()
+		configureDurationResourceManager()
 		return nil
 	})
 }

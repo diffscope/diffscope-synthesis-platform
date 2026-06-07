@@ -37,6 +37,7 @@
 
 #include <dsinfer/Api/Drivers/Onnx/OnnxDriverApi.h>
 #include <dsinfer/Inference/InferenceDriverPlugin.h>
+#include <dsinfer/Core/Tensor.h>
 
 #include <synthrt/Core/Contribute.h>
 #include <synthrt/Core/SynthUnit.h>
@@ -237,6 +238,9 @@ bool DSSP_InitializeSynthRT(const char *package_path, DSSP_Device device) {
 	std::lock_guard lock(dssp::g_synthRTMutex);
 	srt::Logger::setLogCallback(dssp::logSynthRT);
 
+	// TODO: Force the linker to link dsinfer by referencing a symbol from it.
+	volatile auto p_ = &ds::Tensor::create;
+
 	if (dssp::g_synthUnit) {
 		dssp::g_synthUnit->addPackagePath(dssp::pathFromUtf8(package_path));
 		dssp::clearErrorMessage();
@@ -279,6 +283,10 @@ DSSP_SRTPackage DSSP_GetSRTPackage(
 	auto packageResult = dssp::synthUnit()->open(dssp::pathFromUtf8(package_dir), false);
 	if (!packageResult) {
 		dssp::g_logger.error(packageResult.error().message());
+		return nullptr;
+	}
+	if (!packageResult->isLoaded()) {
+		dssp::g_logger.error(dssp::packageErrorMessage(*packageResult));
 		return nullptr;
 	}
 

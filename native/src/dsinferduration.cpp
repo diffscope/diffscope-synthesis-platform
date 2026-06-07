@@ -246,29 +246,13 @@ DSSP_DiffSingerManagedDoubleArray DSSP_RunDiffSingerDurationInferenceTask(
 	input->words = dssp::toDsinferInputWordInfos(*dssp::getDiffSingerWords(words));
 
 	srt::NO<srt::TaskResult> taskResult;
-	try {
-		if (auto exp = inference->start(input); !exp) {
-			dssp::g_logger.error(
-				std::string("Failed to run DiffSinger duration inference task: ") + exp.error().message()
-			);
-			return nullptr;
-		} else {
-			taskResult = exp.take();
-		}
-	} catch (const std::exception &e) {
-		dssp::g_logger.error(std::string("Failed to run DiffSinger duration inference task: ") + e.what());
+	if (auto exp = inference->start(input); !exp) {
+		dssp::g_logger.error(
+			std::string("Failed to run DiffSinger duration inference task: ") + exp.error().message()
+		);
 		return nullptr;
-	} catch (...) {
-		dssp::g_logger.error("Failed to run DiffSinger duration inference task: unknown error");
-		return nullptr;
-	}
-	if (!taskResult) {
-		dssp::g_logger.error("Failed to run DiffSinger duration inference task: result is nullptr");
-		return nullptr;
-	}
-	if (taskResult->objectName() != dssp::Dur::API_NAME) {
-		dssp::g_logger.error("Failed to run DiffSinger duration inference task: invalid result API name");
-		return nullptr;
+	} else {
+		taskResult = exp.take();
 	}
 
 	auto durationResult = taskResult.as<dssp::Dur::DurationResult>();

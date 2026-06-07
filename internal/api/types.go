@@ -25,9 +25,33 @@ type Singer struct {
 	Extra json.RawMessage `json:"extra"`
 }
 
+type SingerRequest struct {
+	ID    *string          `json:"id" validate:"required"`
+	Extra *json.RawMessage `json:"extra" validate:"required"`
+}
+
+func (r SingerRequest) ToSinger() Singer {
+	return Singer{
+		ID:    *r.ID,
+		Extra: *r.Extra,
+	}
+}
+
 type Lyric struct {
 	Lyric    string `json:"lyric"`
 	Language string `json:"language"`
+}
+
+type LyricRequest struct {
+	Lyric    *string `json:"lyric" validate:"required"`
+	Language *string `json:"language" validate:"required"`
+}
+
+func (r LyricRequest) ToLyric() Lyric {
+	return Lyric{
+		Lyric:    *r.Lyric,
+		Language: *r.Language,
+	}
 }
 
 type Pronunciation struct {
@@ -38,6 +62,18 @@ type Pronunciation struct {
 type PronunciationNote struct {
 	Pronunciation string `json:"pronunciation"`
 	Language      string `json:"language"`
+}
+
+type PronunciationNoteRequest struct {
+	Pronunciation *string `json:"pronunciation" validate:"required"`
+	Language      *string `json:"language" validate:"required"`
+}
+
+func (r PronunciationNoteRequest) ToPronunciationNote() PronunciationNote {
+	return PronunciationNote{
+		Pronunciation: *r.Pronunciation,
+		Language:      *r.Language,
+	}
 }
 
 type Phoneme struct {
@@ -54,12 +90,50 @@ type DurationInput struct {
 	Notes         []DurationNote `json:"notes"`
 }
 
+type DurationInputRequest struct {
+	PieceDuration *float64              `json:"piece_duration" validate:"required,gte=0"`
+	Notes         []DurationNoteRequest `json:"notes" validate:"required,dive"`
+}
+
+func (r DurationInputRequest) ToDurationInput() DurationInput {
+	notes := make([]DurationNote, 0, len(r.Notes))
+	for _, note := range r.Notes {
+		notes = append(notes, note.ToDurationNote())
+	}
+	return DurationInput{
+		PieceDuration: *r.PieceDuration,
+		Notes:         notes,
+	}
+}
+
 type DurationNote struct {
 	Position      NotePosition           `json:"position"`
-	Cent          float64                `json:"cent"`
+	Cent          int                    `json:"cent"`
 	Pronunciation string                 `json:"pronunciation"`
 	Language      string                 `json:"language"`
 	Phonemes      []DurationInputPhoneme `json:"phonemes"`
+}
+
+type DurationNoteRequest struct {
+	Position      *NotePositionRequest          `json:"position" validate:"required"`
+	Cent          *int                          `json:"cent" validate:"required,gte=0,lte=12800"`
+	Pronunciation *string                       `json:"pronunciation" validate:"required"`
+	Language      *string                       `json:"language" validate:"required"`
+	Phonemes      []DurationInputPhonemeRequest `json:"phonemes" validate:"required,dive"`
+}
+
+func (r DurationNoteRequest) ToDurationNote() DurationNote {
+	phonemes := make([]DurationInputPhoneme, 0, len(r.Phonemes))
+	for _, phoneme := range r.Phonemes {
+		phonemes = append(phonemes, phoneme.ToDurationInputPhoneme())
+	}
+	return DurationNote{
+		Position:      r.Position.ToNotePosition(),
+		Cent:          *r.Cent,
+		Pronunciation: *r.Pronunciation,
+		Language:      *r.Language,
+		Phonemes:      phonemes,
+	}
 }
 
 type NotePosition struct {
@@ -67,10 +141,36 @@ type NotePosition struct {
 	Duration float64 `json:"duration"`
 }
 
+type NotePositionRequest struct {
+	Gap      *float64 `json:"gap" validate:"required,gte=0"`
+	Duration *float64 `json:"duration" validate:"required,gte=0"`
+}
+
+func (r NotePositionRequest) ToNotePosition() NotePosition {
+	return NotePosition{
+		Gap:      *r.Gap,
+		Duration: *r.Duration,
+	}
+}
+
 type DurationInputPhoneme struct {
 	Token    string `json:"token"`
 	Onset    bool   `json:"onset"`
 	Language string `json:"language"`
+}
+
+type DurationInputPhonemeRequest struct {
+	Token    *string `json:"token" validate:"required"`
+	Onset    *bool   `json:"onset" validate:"required"`
+	Language *string `json:"language" validate:"required"`
+}
+
+func (r DurationInputPhonemeRequest) ToDurationInputPhoneme() DurationInputPhoneme {
+	return DurationInputPhoneme{
+		Token:    *r.Token,
+		Onset:    *r.Onset,
+		Language: *r.Language,
+	}
 }
 
 type DurationOutput struct {

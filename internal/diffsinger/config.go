@@ -29,6 +29,8 @@ func init() {
 	viper.SetDefault("diffsinger.phoneme_cleanup_interval_msec", 60000)
 	viper.SetDefault("diffsinger.phoneme_custom_worker_count", 16)
 	viper.SetDefault("diffsinger.phoneme_custom_worker_timeout_msec", 5000)
+	viper.SetDefault("diffsinger.inference_cleanup_timeout_msec", 600000)
+	viper.SetDefault("diffsinger.inference_cleanup_interval_msec", 60000)
 }
 
 func getPhonemeCleanupTimeout() time.Duration {
@@ -45,4 +47,12 @@ func getPhonemeCustomWorkerCount() int {
 
 func getPhonemeCustomWorkerTimeout() time.Duration {
 	return time.Duration(viper.GetInt("diffsinger.phoneme_custom_worker_timeout_msec")) * time.Millisecond
+}
+
+func getInferenceCleanupTimeout() time.Duration {
+	return time.Duration(viper.GetInt("diffsinger.inference_cleanup_timeout_msec")) * time.Millisecond
+}
+
+func getInferenceCleanupInterval() time.Duration {
+	return time.Duration(viper.GetInt("diffsinger.inference_cleanup_interval_msec")) * time.Millisecond
 }

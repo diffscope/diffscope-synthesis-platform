@@ -21,7 +21,6 @@ package server
 import (
 	"encoding/json"
 	"errors"
-	"io"
 	"log/slog"
 	"net/http"
 
@@ -33,24 +32,19 @@ import (
 var logger = slog.With("component", "server.pronunciation")
 
 type pronunciationRequest struct {
-	Context *pronunciationContext `json:"context"`
-	Input   *pronunciationInput   `json:"input"`
+	Context *pronunciationContext `json:"context" validate:"required"`
+	Input   *pronunciationInput   `json:"input" validate:"required"`
 	EnvTag  *string               `json:"env_tag"`
 }
 
 type pronunciationContext struct {
-	Arch      *string              `json:"arch"`
-	ArchExtra json.RawMessage      `json:"arch_extra"`
-	Singer    *pronunciationSinger `json:"singer"`
-}
-
-type pronunciationSinger struct {
-	ID    *string         `json:"id"`
-	Extra json.RawMessage `json:"extra"`
+	Arch      *string            `json:"arch" validate:"required"`
+	ArchExtra *json.RawMessage   `json:"arch_extra" validate:"required"`
+	Singer    *api.SingerRequest `json:"singer" validate:"required"`
 }
 
 type pronunciationInput struct {
-	Lyrics []api.Lyric `json:"lyrics"`
+	Lyrics []api.LyricRequest `json:"lyrics" validate:"required,dive"`
 }
 
 type pronunciationResponse struct {
@@ -71,22 +65,20 @@ type errorResponse struct {
 
 func PostPronunciation(c *gin.Context) {
 	var request pronunciationRequest
-	if err := decodeJSON(c, &request); err != nil || !request.isValid() {
+	if err := decodeRequest(c, &request); err != nil {
 		logger.Error("Invalid pronunciation request", slog.Any("error", err))
 		writeBadRequest(c)
 		return
 	}
 
-	singer := api.Singer{
-		ID:    *request.Context.Singer.ID,
-		Extra: request.Context.Singer.Extra,
-	}
+	archExtra := *request.Context.ArchExtra
+	singer := request.Context.Singer.ToSinger()
 	arch, ok := getArchitecture(*request.Context.Arch)
 	if !ok {
 		writeError(c, newUnknownArchError())
 		return
 	}
-	envTag := arch.GetEnvTag(request.Context.ArchExtra, []api.Singer{singer})
+	envTag := arch.GetEnvTag(archExtra, []api.Singer{singer})
 	if request.EnvTag != nil && *request.EnvTag == envTag {
 		if c.Request.Context().Err() == nil {
 			c.Status(http.StatusNoContent)
@@ -96,9 +88,9 @@ func PostPronunciation(c *gin.Context) {
 
 	pronunciations, err := arch.Pronunciation(
 		c.Request.Context(),
-		request.Context.ArchExtra,
+		archExtra,
 		singer,
-		request.Input.Lyrics,
+		pronunciationLyrics(request.Input.Lyrics),
 	)
 	if err != nil {
 		if c.Request.Context().Err() != nil {
@@ -120,33 +112,12 @@ func PostPronunciation(c *gin.Context) {
 	})
 }
 
-func writeBadRequest(c *gin.Context) {
-	if c.Request.Context().Err() != nil {
-		return
+func pronunciationLyrics(requests []api.LyricRequest) []api.Lyric {
+	lyrics := make([]api.Lyric, 0, len(requests))
+	for _, request := range requests {
+		lyrics = append(lyrics, request.ToLyric())
 	}
-	c.JSON(http.StatusBadRequest, gin.H{"message": ""})
-}
-
-func decodeJSON(c *gin.Context, value any) error {
-	decoder := json.NewDecoder(c.Request.Body)
-	if err := decoder.Decode(value); err != nil {
-		return err
-	}
-	if err := decoder.Decode(&struct{}{}); err != io.EOF {
-		return errors.New("request body must contain one JSON value")
-	}
-	return nil
-}
-
-func (r pronunciationRequest) isValid() bool {
-	return r.Context != nil &&
-		r.Context.Arch != nil &&
-		r.Context.ArchExtra != nil &&
-		r.Context.Singer != nil &&
-		r.Context.Singer.ID != nil &&
-		r.Context.Singer.Extra != nil &&
-		r.Input != nil &&
-		r.Input.Lyrics != nil
+	return lyrics
 }
 
 func writeError(c *gin.Context, err error) {

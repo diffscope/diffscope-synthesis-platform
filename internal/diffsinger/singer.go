@@ -29,6 +29,7 @@ import (
 	"strings"
 	"sync"
 
+	"diffscope-synthesis-platform/internal/dsinfer"
 	"diffscope-synthesis-platform/internal/synthrt"
 
 	"github.com/diffscope/diffscope-package-manager/packagedatabase"
@@ -70,7 +71,6 @@ type SingerMetadata struct {
 	Version          packageinfo.PackageVersion
 	PackageDirectory string
 	SingerConfigPath string
-	SynthRTSinger    *synthrt.Singer
 
 	Avatar     *packageinfo.MultilingualText
 	Background *packageinfo.MultilingualText
@@ -81,6 +81,9 @@ type SingerMetadata struct {
 	G2PPackagesPath *string
 	Languages       map[string]SingerLanguage
 	Speakers        map[string]SingerSpeaker
+
+	SynthRTSinger     *synthrt.Singer
+	durationInference *dsinfer.DurationInference
 }
 
 type SingerLanguage struct {
@@ -302,6 +305,7 @@ func LoadSingerMetadata(packagesDir string) (map[SingerIdentifier]SingerMetadata
 			logLoadError(id.PackageID, id.Version.String(), id.SingerID, singerConfigPath, err)
 			continue
 		}
+
 		srtPackage, err := synthrt.GetPackage(packageDir, id.PackageID, synthRTVersionNumber(id.Version))
 		if err != nil {
 			logLoadError(id.PackageID, id.Version.String(), id.SingerID, singerConfigPath, fmt.Errorf("load SynthRT package: %w", err))
@@ -313,6 +317,13 @@ func LoadSingerMetadata(packagesDir string) (map[SingerIdentifier]SingerMetadata
 			continue
 		}
 		item.SynthRTSinger = srtSinger
+		durationInference, err := dsinfer.GetDurationInference(srtSinger)
+		if err != nil {
+			logLoadError(id.PackageID, id.Version.String(), id.SingerID, singerConfigPath, fmt.Errorf("get duration inference: %w", err))
+			continue
+		}
+		item.durationInference = durationInference
+
 		metadata[id] = item
 		logger.Info(
 			"Loaded singer metadata",

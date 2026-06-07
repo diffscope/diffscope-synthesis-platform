@@ -32,47 +32,18 @@ import (
 var durationLogger = slog.With("component", "server.duration")
 
 type durationRequest struct {
-	Context *durationContext `json:"context"`
-	Input   *durationInput   `json:"input"`
-	EnvTag  *string          `json:"env_tag"`
+	Context *durationContext          `json:"context" validate:"required"`
+	Input   *api.DurationInputRequest `json:"input" validate:"required"`
+	EnvTag  *string                   `json:"env_tag"`
 }
 
 type durationContext struct {
-	Arch          *string          `json:"arch"`
-	ArchExtra     json.RawMessage  `json:"arch_extra"`
-	Singers       []durationSinger `json:"singers"`
-	Mix           [][]float64      `json:"mix"`
-	MixSampleRate *float64         `json:"mix_sample_rate"`
-	Stream        *bool            `json:"stream"`
-}
-
-type durationSinger struct {
-	ID    *string         `json:"id"`
-	Extra json.RawMessage `json:"extra"`
-}
-
-type durationInput struct {
-	PieceDuration *float64       `json:"piece_duration"`
-	Notes         []durationNote `json:"notes"`
-}
-
-type durationNote struct {
-	Position      *durationPosition      `json:"position"`
-	Cent          *float64               `json:"cent"`
-	Pronunciation *string                `json:"pronunciation"`
-	Language      *string                `json:"language"`
-	Phonemes      []durationInputPhoneme `json:"phonemes"`
-}
-
-type durationPosition struct {
-	Gap      *float64 `json:"gap"`
-	Duration *float64 `json:"duration"`
-}
-
-type durationInputPhoneme struct {
-	Token    *string `json:"token"`
-	Onset    *bool   `json:"onset"`
-	Language *string `json:"language"`
+	Arch          *string             `json:"arch" validate:"required"`
+	ArchExtra     *json.RawMessage    `json:"arch_extra" validate:"required"`
+	Singers       []api.SingerRequest `json:"singers" validate:"required,min=1,dive"`
+	Mix           [][]float64         `json:"mix" validate:"required,dive,required,dive,gte=0,lte=1"`
+	MixSampleRate *float64            `json:"mix_sample_rate" validate:"required,gt=0"`
+	Stream        *bool               `json:"stream"`
 }
 
 type durationResponse struct {
@@ -87,12 +58,13 @@ type durationStateResponse struct {
 
 func PostDuration(c *gin.Context) {
 	var request durationRequest
-	if err := decodeJSON(c, &request); err != nil || !request.isValid() {
+	if err := decodeRequest(c, &request); err != nil {
 		durationLogger.Error("Invalid duration request", slog.Any("error", err))
 		writeBadRequest(c)
 		return
 	}
 
+	archExtra := *request.Context.ArchExtra
 	arch, ok := getArchitecture(*request.Context.Arch)
 	if !ok {
 		writeError(c, newUnknownArchError())
@@ -100,7 +72,7 @@ func PostDuration(c *gin.Context) {
 	}
 
 	singers := request.singers()
-	envTag := arch.GetEnvTag(request.Context.ArchExtra, singers)
+	envTag := arch.GetEnvTag(archExtra, singers)
 	if request.EnvTag != nil && *request.EnvTag == envTag {
 		if c.Request.Context().Err() == nil {
 			c.Status(http.StatusNoContent)
@@ -108,10 +80,10 @@ func PostDuration(c *gin.Context) {
 		return
 	}
 
-	input := request.apiInput()
+	input := request.Input.ToDurationInput()
 	events, err := arch.Duration(
 		c.Request.Context(),
-		request.Context.ArchExtra,
+		archExtra,
 		singers,
 		request.Context.Mix,
 		*request.Context.MixSampleRate,
@@ -137,75 +109,6 @@ func PostDuration(c *gin.Context) {
 	writeDurationResponse(c, events, envTag, input.Notes)
 }
 
-func (r durationRequest) isValid() bool {
-	if r.Context == nil ||
-		r.Context.Arch == nil ||
-		r.Context.ArchExtra == nil ||
-		r.Context.Singers == nil ||
-		len(r.Context.Singers) == 0 ||
-		r.Context.Mix == nil ||
-		r.Context.MixSampleRate == nil ||
-		*r.Context.MixSampleRate <= 0 ||
-		r.Input == nil ||
-		r.Input.PieceDuration == nil ||
-		*r.Input.PieceDuration < 0 ||
-		r.Input.Notes == nil {
-		return false
-	}
-	for _, singer := range r.Context.Singers {
-		if singer.ID == nil || singer.Extra == nil {
-			return false
-		}
-	}
-	for _, mix := range r.Context.Mix {
-		if !isValidMix(mix, len(r.Context.Singers)-1) {
-			return false
-		}
-	}
-	for _, note := range r.Input.Notes {
-		if !note.isValid() {
-			return false
-		}
-	}
-	return true
-}
-
-func isValidMix(mix []float64, expectedLength int) bool {
-	if mix == nil || len(mix) != expectedLength {
-		return false
-	}
-	var sum float64
-	for _, value := range mix {
-		if value < 0 || value > 1 {
-			return false
-		}
-		sum += value
-	}
-	return sum >= 0 && sum <= 1
-}
-
-func (n durationNote) isValid() bool {
-	if n.Position == nil ||
-		n.Position.Gap == nil ||
-		n.Position.Duration == nil ||
-		*n.Position.Gap < 0 ||
-		*n.Position.Duration < 0 ||
-		n.Cent == nil ||
-		*n.Cent < 0 ||
-		*n.Cent > 12800 ||
-		n.Pronunciation == nil ||
-		n.Language == nil ||
-		n.Phonemes == nil {
-		return false
-	}
-	for _, phoneme := range n.Phonemes {
-		if phoneme.Token == nil || phoneme.Onset == nil || phoneme.Language == nil {
-			return false
-		}
-	}
-	return true
-}
-
 func (r durationRequest) stream() bool {
 	return r.Context.Stream != nil && *r.Context.Stream
 }
@@ -213,40 +116,9 @@ func (r durationRequest) stream() bool {
 func (r durationRequest) singers() []api.Singer {
 	singers := make([]api.Singer, 0, len(r.Context.Singers))
 	for _, singer := range r.Context.Singers {
-		singers = append(singers, api.Singer{
-			ID:    *singer.ID,
-			Extra: singer.Extra,
-		})
+		singers = append(singers, singer.ToSinger())
 	}
 	return singers
-}
-
-func (r durationRequest) apiInput() api.DurationInput {
-	notes := make([]api.DurationNote, 0, len(r.Input.Notes))
-	for _, note := range r.Input.Notes {
-		phonemes := make([]api.DurationInputPhoneme, 0, len(note.Phonemes))
-		for _, phoneme := range note.Phonemes {
-			phonemes = append(phonemes, api.DurationInputPhoneme{
-				Token:    *phoneme.Token,
-				Onset:    *phoneme.Onset,
-				Language: *phoneme.Language,
-			})
-		}
-		notes = append(notes, api.DurationNote{
-			Position: api.NotePosition{
-				Gap:      *note.Position.Gap,
-				Duration: *note.Position.Duration,
-			},
-			Cent:          *note.Cent,
-			Pronunciation: *note.Pronunciation,
-			Language:      *note.Language,
-			Phonemes:      phonemes,
-		})
-	}
-	return api.DurationInput{
-		PieceDuration: *r.Input.PieceDuration,
-		Notes:         notes,
-	}
 }
 
 func writeDurationResponse(c *gin.Context, events <-chan api.DurationEvent, envTag string, notes []api.DurationNote) {

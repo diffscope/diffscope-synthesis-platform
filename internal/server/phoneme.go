@@ -30,13 +30,13 @@ import (
 var phonemeLogger = slog.With("component", "server.phoneme")
 
 type phonemeRequest struct {
-	Context *pronunciationContext `json:"context"`
-	Input   *phonemeInput         `json:"input"`
+	Context *pronunciationContext `json:"context" validate:"required"`
+	Input   *phonemeInput         `json:"input" validate:"required"`
 	EnvTag  *string               `json:"env_tag"`
 }
 
 type phonemeInput struct {
-	Notes []api.PronunciationNote `json:"notes"`
+	Notes []api.PronunciationNoteRequest `json:"notes" validate:"required,dive"`
 }
 
 type phonemeResponse struct {
@@ -51,22 +51,20 @@ type phonemeOutput struct {
 
 func PostPhoneme(c *gin.Context) {
 	var request phonemeRequest
-	if err := decodeJSON(c, &request); err != nil || !request.isValid() {
+	if err := decodeRequest(c, &request); err != nil {
 		phonemeLogger.Error("Invalid phoneme request", slog.Any("error", err))
 		writeBadRequest(c)
 		return
 	}
 
-	singer := api.Singer{
-		ID:    *request.Context.Singer.ID,
-		Extra: request.Context.Singer.Extra,
-	}
+	archExtra := *request.Context.ArchExtra
+	singer := request.Context.Singer.ToSinger()
 	arch, ok := getArchitecture(*request.Context.Arch)
 	if !ok {
 		writeError(c, newUnknownArchError())
 		return
 	}
-	envTag := arch.GetEnvTag(request.Context.ArchExtra, []api.Singer{singer})
+	envTag := arch.GetEnvTag(archExtra, []api.Singer{singer})
 	if request.EnvTag != nil && *request.EnvTag == envTag {
 		if c.Request.Context().Err() == nil {
 			c.Status(http.StatusNoContent)
@@ -76,9 +74,9 @@ func PostPhoneme(c *gin.Context) {
 
 	notes, err := arch.Phoneme(
 		c.Request.Context(),
-		request.Context.ArchExtra,
+		archExtra,
 		singer,
-		request.Input.Notes,
+		phonemeNotes(request.Input.Notes),
 	)
 	if err != nil {
 		if c.Request.Context().Err() != nil {
@@ -100,13 +98,10 @@ func PostPhoneme(c *gin.Context) {
 	})
 }
 
-func (r phonemeRequest) isValid() bool {
-	return r.Context != nil &&
-		r.Context.Arch != nil &&
-		r.Context.ArchExtra != nil &&
-		r.Context.Singer != nil &&
-		r.Context.Singer.ID != nil &&
-		r.Context.Singer.Extra != nil &&
-		r.Input != nil &&
-		r.Input.Notes != nil
+func phonemeNotes(requests []api.PronunciationNoteRequest) []api.PronunciationNote {
+	notes := make([]api.PronunciationNote, 0, len(requests))
+	for _, request := range requests {
+		notes = append(notes, request.ToPronunciationNote())
+	}
+	return notes
 }

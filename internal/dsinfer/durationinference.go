@@ -34,8 +34,18 @@ type DurationInference struct {
 }
 
 type DurationInferenceTask struct {
+	mu         sync.Mutex
+	runMu      sync.Mutex
+	wg         sync.WaitGroup
+	handle     uintptr
+	deleted    bool
+	deleteDone chan struct{}
+	runs       map[*DurationInferenceRun]struct{}
+}
+
+type DurationInferenceRun struct {
 	started   <-chan struct{}
-	done      <-chan DurationInferenceResult
+	done      chan DurationInferenceResult
 	terminate func()
 }
 
@@ -46,7 +56,7 @@ type DurationInferenceResult struct {
 
 var durationInferenceQueue = utils.NewSerializedTaskQueue[[]float64]()
 
-func NewDurationInference(singer *synthrt.Singer) (*DurationInference, error) {
+func GetDurationInference(singer *synthrt.Singer) (*DurationInference, error) {
 	if singer == nil || singer.Handle() == 0 {
 		return nil, errors.New("dsinfer: singer is not loaded")
 	}
@@ -72,18 +82,9 @@ func (i *DurationInference) Handle() uintptr {
 	return i.handle
 }
 
-func (i *DurationInference) Start(ctx context.Context, duration float64, words *Words) (*DurationInferenceTask, error) {
+func (i *DurationInference) CreateTask() (*DurationInferenceTask, error) {
 	if i == nil || i.handle == 0 {
 		return nil, errors.New("dsinfer: duration inference is not available")
-	}
-	if words == nil || words.Handle() == 0 {
-		return nil, errors.New("dsinfer: duration inference words are not available")
-	}
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	if err := ctx.Err(); err != nil {
-		return nil, err
 	}
 
 	taskHandle := native.DSSP_CreateDiffSingerDurationInferenceTask(i.handle)
@@ -95,21 +96,66 @@ func (i *DurationInference) Start(ctx context.Context, duration float64, words *
 		native.DSSP_DeleteDiffSingerDurationInferenceTask(taskHandle)
 		return nil, err
 	}
+	return &DurationInferenceTask{
+		handle:     taskHandle,
+		deleteDone: make(chan struct{}),
+		runs:       make(map[*DurationInferenceRun]struct{}),
+	}, nil
+}
 
+func (t *DurationInferenceTask) Handle() uintptr {
+	if t == nil {
+		return 0
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.deleted {
+		return 0
+	}
+	return t.handle
+}
+
+func (t *DurationInferenceTask) Start(ctx context.Context, duration float64, words *Words) (*DurationInferenceRun, error) {
+	if t == nil {
+		return nil, errors.New("dsinfer: duration inference task is nil")
+	}
+	if words == nil || words.Handle() == 0 {
+		return nil, errors.New("dsinfer: duration inference words are not available")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.deleted || t.handle == 0 {
+		return nil, errors.New("dsinfer: duration inference task is deleted")
+	}
+	taskHandle := t.handle
 	wordsHandle := words.consume()
 	var cleanupOnce sync.Once
 	cleanup := func() {
 		cleanupOnce.Do(func() {
-			native.DSSP_DeleteDiffSingerDurationInferenceTask(taskHandle)
 			native.DSSP_FreeDiffSingerWords(wordsHandle)
 		})
 	}
+
+	run := &DurationInferenceRun{
+		done: make(chan DurationInferenceResult, 1),
+	}
+	t.runs[run] = struct{}{}
+	t.wg.Add(1)
 
 	queued := durationInferenceQueue.Submit(utils.SerializedTaskSpec[[]float64]{
 		Context: ctx,
 		Run: func(context.Context) ([]float64, error) {
 			defer cleanup()
 
+			t.runMu.Lock()
+			defer t.runMu.Unlock()
 			resultHandle := native.DSSP_RunDiffSingerDurationInferenceTask(taskHandle, duration, wordsHandle)
 			if resultHandle == 0 {
 				return nil, durationInferenceError("run duration inference task", taskHandle)
@@ -126,49 +172,94 @@ func (i *DurationInference) Start(ctx context.Context, duration float64, words *
 		},
 	})
 
-	done := make(chan DurationInferenceResult, 1)
+	run.started = queued.Started()
+	run.terminate = queued.Terminate
 	go func() {
+		defer t.finishRun(run)
+
 		result := <-queued.Done()
-		done <- DurationInferenceResult{
+		run.done <- DurationInferenceResult{
 			Durations: result.Value,
 			Err:       result.Err,
 		}
-		close(done)
+		close(run.done)
 	}()
 
-	return &DurationInferenceTask{
-		started: queued.Started(),
-		done:    done,
-		terminate: func() {
-			queued.Terminate()
-		},
-	}, nil
+	return run, nil
 }
 
-func (t *DurationInferenceTask) Started() <-chan struct{} {
+func (t *DurationInferenceTask) Delete() {
 	if t == nil {
+		return
+	}
+
+	t.mu.Lock()
+	if t.deleteDone == nil {
+		t.deleteDone = make(chan struct{})
+	}
+	if t.deleted {
+		deleteDone := t.deleteDone
+		t.mu.Unlock()
+		<-deleteDone
+		return
+	}
+	t.deleted = true
+	taskHandle := t.handle
+	deleteDone := t.deleteDone
+	runs := make([]*DurationInferenceRun, 0, len(t.runs))
+	for run := range t.runs {
+		runs = append(runs, run)
+	}
+	t.mu.Unlock()
+
+	for _, run := range runs {
+		run.Terminate()
+	}
+	t.wg.Wait()
+
+	if taskHandle != 0 {
+		native.DSSP_DeleteDiffSingerDurationInferenceTask(taskHandle)
+	}
+
+	t.mu.Lock()
+	if t.handle == taskHandle {
+		t.handle = 0
+	}
+	t.mu.Unlock()
+	close(deleteDone)
+}
+
+func (t *DurationInferenceTask) finishRun(run *DurationInferenceRun) {
+	t.mu.Lock()
+	delete(t.runs, run)
+	t.mu.Unlock()
+	t.wg.Done()
+}
+
+func (r *DurationInferenceRun) Started() <-chan struct{} {
+	if r == nil {
 		done := make(chan struct{})
 		close(done)
 		return done
 	}
-	return t.started
+	return r.started
 }
 
-func (t *DurationInferenceTask) Done() <-chan DurationInferenceResult {
-	if t == nil {
+func (r *DurationInferenceRun) Done() <-chan DurationInferenceResult {
+	if r == nil {
 		done := make(chan DurationInferenceResult, 1)
-		done <- DurationInferenceResult{Err: errors.New("dsinfer: duration inference task is nil")}
+		done <- DurationInferenceResult{Err: errors.New("dsinfer: duration inference run is nil")}
 		close(done)
 		return done
 	}
-	return t.done
+	return r.done
 }
 
-func (t *DurationInferenceTask) Terminate() {
-	if t == nil || t.terminate == nil {
+func (r *DurationInferenceRun) Terminate() {
+	if r == nil || r.terminate == nil {
 		return
 	}
-	t.terminate()
+	r.terminate()
 }
 
 func durationInferenceError(action string, task uintptr) error {
