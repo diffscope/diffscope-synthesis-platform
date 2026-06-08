@@ -24,6 +24,8 @@ import (
 	"io"
 	"net/http"
 
+	"diffscope-synthesis-platform/internal/api"
+
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
@@ -33,6 +35,7 @@ var requestValidator = newRequestValidator()
 func newRequestValidator() *validator.Validate {
 	validate := validator.New()
 	validate.RegisterStructValidation(validateDurationRequest, durationRequest{})
+	validate.RegisterStructValidation(validateParameterRequest, parameterRequest{})
 	return validate
 }
 
@@ -79,13 +82,38 @@ func validateDurationRequest(sl validator.StructLevel) {
 		return
 	}
 
-	expectedLength := len(request.Context.Singers) - 1
+	validateMix(sl, request.Context.Singers, request.Input.Mix, "duration_mix")
+}
+
+func validateParameterRequest(sl validator.StructLevel) {
+	var request parameterRequest
+	switch current := sl.Current().Interface().(type) {
+	case parameterRequest:
+		request = current
+	case *parameterRequest:
+		if current == nil {
+			return
+		}
+		request = *current
+	default:
+		return
+	}
+
+	if request.Context == nil || request.Input == nil || request.Context.Singers == nil || request.Input.Mix == nil {
+		return
+	}
+
+	validateMix(sl, request.Context.Singers, request.Input.Mix, "parameter_mix")
+}
+
+func validateMix(sl validator.StructLevel, singers []api.SingerRequest, mixes [][]float64, tag string) {
+	expectedLength := len(singers) - 1
 	if expectedLength < 0 {
 		return
 	}
-	for _, mix := range request.Input.Mix {
+	for _, mix := range mixes {
 		if !isValidMix(mix, expectedLength) {
-			sl.ReportError(request.Input.Mix, "Mix", "Mix", "duration_mix", "")
+			sl.ReportError(mixes, "Mix", "Mix", tag, "")
 			return
 		}
 	}

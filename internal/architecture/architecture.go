@@ -48,4 +48,15 @@ type Architecture interface {
 		pieceDuration float64,
 		notes []api.DurationNote,
 	) (<-chan api.DurationEvent, error)
+	Parameter(
+		ctx context.Context,
+		archExtra json.RawMessage,
+		singers []api.Singer,
+		mix [][]float64,
+		mixSampleRate float64,
+		parameterSampleRate float64,
+		pieceDuration float64,
+		notes []api.Note,
+		parameters map[string]api.Parameter,
+	) (<-chan api.ParameterEvent, error)
 }

@@ -16,66 +16,46 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>. *
  **************************************************************************/
 
-package server
+package diffsinger
 
 import (
-	"fmt"
-	"sync"
+	"context"
+	"encoding/json"
 
-	"github.com/gin-contrib/gzip"
-	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
+	"diffscope-synthesis-platform/internal/api"
 )
 
-type StartRoutine func() error
+func (Architecture) Parameter(
+	ctx context.Context,
+	archExtra json.RawMessage,
+	singers []api.Singer,
+	mix [][]float64,
+	mixSampleRate float64,
+	parameterSampleRate float64,
+	pieceDuration float64,
+	notes []api.Note,
+	parameters map[string]api.Parameter,
+) (<-chan api.ParameterEvent, error) {
+	_ = archExtra
+	_ = singers
+	_ = mix
+	_ = mixSampleRate
+	_ = parameterSampleRate
+	_ = pieceDuration
+	_ = notes
+	_ = parameters
 
-var (
-	startRoutinesMu sync.Mutex
-	startRoutines   []StartRoutine
-)
-
-func RegisterStartRoutine(routine StartRoutine) {
-	if routine == nil {
-		panic("server: nil start routine")
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 
-	startRoutinesMu.Lock()
-	defer startRoutinesMu.Unlock()
-	startRoutines = append(startRoutines, routine)
-}
-
-func runStartRoutines() error {
-	startRoutinesMu.Lock()
-	routines := append([]StartRoutine(nil), startRoutines...)
-	startRoutinesMu.Unlock()
-
-	for _, routine := range routines {
-		if err := routine(); err != nil {
-			return err
-		}
+	events := make(chan api.ParameterEvent, 1)
+	events <- api.ParameterEvent{
+		State: api.StateComplete,
+		Output: api.ParameterOutput{
+			Parameters: map[string][]float64{},
+		},
 	}
-	return nil
-}
-
-func StartRouter() error {
-	router := gin.Default()
-	router.Use(gzip.Gzip(gzip.DefaultCompression))
-
-	router.GET("/api/info", GetApplicationInfo)
-	router.POST("/api/synth/pronunciation", PostPronunciation)
-	router.POST("/api/synth/phoneme", PostPhoneme)
-	router.POST("/api/synth/duration", PostDuration)
-	router.POST("/api/synth/parameter", PostParameter)
-
-	host := viper.GetString("host")
-	port := viper.GetInt("port")
-
-	return router.Run(fmt.Sprintf("%s:%d", host, port))
-}
-
-func StartServer() error {
-	if err := runStartRoutines(); err != nil {
-		return err
-	}
-	return StartRouter()
+	close(events)
+	return events, nil
 }

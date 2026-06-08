@@ -193,6 +193,139 @@ type DurationEvent struct {
 	Err    error
 }
 
+type ParameterInput struct {
+	PieceDuration float64              `json:"piece_duration"`
+	Notes         []Note               `json:"notes"`
+	Parameters    map[string]Parameter `json:"parameters"`
+}
+
+type ParameterInputRequest struct {
+	PieceDuration       *float64                    `json:"piece_duration" validate:"required,gte=0"`
+	Notes               []ParameterNoteRequest      `json:"notes" validate:"required,dive"`
+	Mix                 [][]float64                 `json:"mix" validate:"required,dive,required,dive,gte=0,lte=1"`
+	MixSampleRate       *float64                    `json:"mix_sample_rate" validate:"required,gt=0"`
+	ParameterSampleRate *float64                    `json:"parameter_sample_rate" validate:"required,gt=0"`
+	Parameters          map[string]ParameterRequest `json:"parameters" validate:"required,dive"`
+}
+
+func (r ParameterInputRequest) ToParameterInput() ParameterInput {
+	notes := make([]Note, 0, len(r.Notes))
+	for _, note := range r.Notes {
+		notes = append(notes, note.ToNote())
+	}
+	parameters := make(map[string]Parameter, len(r.Parameters))
+	for name, parameter := range r.Parameters {
+		parameters[name] = parameter.ToParameter()
+	}
+	return ParameterInput{
+		PieceDuration: *r.PieceDuration,
+		Notes:         notes,
+		Parameters:    parameters,
+	}
+}
+
+type Note struct {
+	Position      NotePosition            `json:"position"`
+	Cent          int                     `json:"cent"`
+	Pronunciation string                  `json:"pronunciation"`
+	Language      string                  `json:"language"`
+	Phonemes      []ParameterInputPhoneme `json:"phonemes"`
+}
+
+type ParameterNoteRequest struct {
+	Position      *NotePositionRequest           `json:"position" validate:"required"`
+	Cent          *int                           `json:"cent" validate:"required,gte=0,lte=12800"`
+	Pronunciation *string                        `json:"pronunciation" validate:"required"`
+	Language      *string                        `json:"language" validate:"required"`
+	Phonemes      []ParameterInputPhonemeRequest `json:"phonemes" validate:"required,dive"`
+}
+
+func (r ParameterNoteRequest) ToNote() Note {
+	phonemes := make([]ParameterInputPhoneme, 0, len(r.Phonemes))
+	for _, phoneme := range r.Phonemes {
+		phonemes = append(phonemes, phoneme.ToParameterInputPhoneme())
+	}
+	return Note{
+		Position:      r.Position.ToNotePosition(),
+		Cent:          *r.Cent,
+		Pronunciation: *r.Pronunciation,
+		Language:      *r.Language,
+		Phonemes:      phonemes,
+	}
+}
+
+type ParameterInputPhoneme struct {
+	Token    string  `json:"token"`
+	Onset    bool    `json:"onset"`
+	Language string  `json:"language"`
+	Start    float64 `json:"start"`
+}
+
+type ParameterInputPhonemeRequest struct {
+	Token    *string  `json:"token" validate:"required"`
+	Onset    *bool    `json:"onset" validate:"required"`
+	Language *string  `json:"language" validate:"required"`
+	Start    *float64 `json:"start" validate:"required,gte=0"`
+}
+
+func (r ParameterInputPhonemeRequest) ToParameterInputPhoneme() ParameterInputPhoneme {
+	return ParameterInputPhoneme{
+		Token:    *r.Token,
+		Onset:    *r.Onset,
+		Language: *r.Language,
+		Start:    *r.Start,
+	}
+}
+
+type Parameter struct {
+	Values []float64        `json:"values"`
+	Retake *ParameterRetake `json:"retake"`
+}
+
+type ParameterRequest struct {
+	Values []float64               `json:"values" validate:"required,dive"`
+	Retake *ParameterRetakeRequest `json:"retake" validate:"omitempty"`
+}
+
+func (r ParameterRequest) ToParameter() Parameter {
+	var retake *ParameterRetake
+	if r.Retake != nil {
+		value := r.Retake.ToParameterRetake()
+		retake = &value
+	}
+	return Parameter{
+		Values: r.Values,
+		Retake: retake,
+	}
+}
+
+type ParameterRetake struct {
+	Position int `json:"position"`
+	Length   int `json:"length"`
+}
+
+type ParameterRetakeRequest struct {
+	Position *int `json:"position" validate:"required,gte=0"`
+	Length   *int `json:"length" validate:"required,gte=0"`
+}
+
+func (r ParameterRetakeRequest) ToParameterRetake() ParameterRetake {
+	return ParameterRetake{
+		Position: *r.Position,
+		Length:   *r.Length,
+	}
+}
+
+type ParameterOutput struct {
+	Parameters map[string][]float64 `json:"parameters"`
+}
+
+type ParameterEvent struct {
+	State  State
+	Output ParameterOutput
+	Err    error
+}
+
 type State string
 
 const (
