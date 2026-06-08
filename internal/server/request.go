@@ -32,7 +32,7 @@ var requestValidator = newRequestValidator()
 
 func newRequestValidator() *validator.Validate {
 	validate := validator.New()
-	validate.RegisterStructValidation(validateDurationContext, durationContext{})
+	validate.RegisterStructValidation(validateDurationRequest, durationRequest{})
 	return validate
 }
 
@@ -61,31 +61,31 @@ func writeBadRequest(c *gin.Context) {
 	c.JSON(http.StatusBadRequest, gin.H{"message": ""})
 }
 
-func validateDurationContext(sl validator.StructLevel) {
-	var context durationContext
+func validateDurationRequest(sl validator.StructLevel) {
+	var request durationRequest
 	switch current := sl.Current().Interface().(type) {
-	case durationContext:
-		context = current
-	case *durationContext:
+	case durationRequest:
+		request = current
+	case *durationRequest:
 		if current == nil {
 			return
 		}
-		context = *current
+		request = *current
 	default:
 		return
 	}
 
-	if context.Singers == nil || context.Mix == nil {
+	if request.Context == nil || request.Input == nil || request.Context.Singers == nil || request.Input.Mix == nil {
 		return
 	}
 
-	expectedLength := len(context.Singers) - 1
+	expectedLength := len(request.Context.Singers) - 1
 	if expectedLength < 0 {
 		return
 	}
-	for _, mix := range context.Mix {
+	for _, mix := range request.Input.Mix {
 		if !isValidMix(mix, expectedLength) {
-			sl.ReportError(context.Mix, "Mix", "Mix", "duration_mix", "")
+			sl.ReportError(request.Input.Mix, "Mix", "Mix", "duration_mix", "")
 			return
 		}
 	}

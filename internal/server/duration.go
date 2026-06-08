@@ -35,15 +35,13 @@ type durationRequest struct {
 	Context *durationContext          `json:"context" validate:"required"`
 	Input   *api.DurationInputRequest `json:"input" validate:"required"`
 	EnvTag  *string                   `json:"env_tag"`
+	Stream  *bool                     `json:"stream"`
 }
 
 type durationContext struct {
-	Arch          *string             `json:"arch" validate:"required"`
-	ArchExtra     *json.RawMessage    `json:"arch_extra" validate:"required"`
-	Singers       []api.SingerRequest `json:"singers" validate:"required,min=1,dive"`
-	Mix           [][]float64         `json:"mix" validate:"required,dive,required,dive,gte=0,lte=1"`
-	MixSampleRate *float64            `json:"mix_sample_rate" validate:"required,gt=0"`
-	Stream        *bool               `json:"stream"`
+	Arch      *string             `json:"arch" validate:"required"`
+	ArchExtra *json.RawMessage    `json:"arch_extra" validate:"required"`
+	Singers   []api.SingerRequest `json:"singers" validate:"required,min=1,dive"`
 }
 
 type durationResponse struct {
@@ -85,8 +83,8 @@ func PostDuration(c *gin.Context) {
 		c.Request.Context(),
 		archExtra,
 		singers,
-		request.Context.Mix,
-		*request.Context.MixSampleRate,
+		request.Input.Mix,
+		*request.Input.MixSampleRate,
 		input.PieceDuration,
 		input.Notes,
 	)
@@ -110,7 +108,7 @@ func PostDuration(c *gin.Context) {
 }
 
 func (r durationRequest) stream() bool {
-	return r.Context.Stream != nil && *r.Context.Stream
+	return r.Stream != nil && *r.Stream
 }
 
 func (r durationRequest) singers() []api.Singer {

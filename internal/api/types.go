@@ -93,6 +93,8 @@ type DurationInput struct {
 type DurationInputRequest struct {
 	PieceDuration *float64              `json:"piece_duration" validate:"required,gte=0"`
 	Notes         []DurationNoteRequest `json:"notes" validate:"required,dive"`
+	Mix           [][]float64           `json:"mix" validate:"required,dive,required,dive,gte=0,lte=1"`
+	MixSampleRate *float64              `json:"mix_sample_rate" validate:"required,gt=0"`
 }
 
 func (r DurationInputRequest) ToDurationInput() DurationInput {
