@@ -3,7 +3,8 @@
     "dependencies": [
         "qmsetup",
         "language-manager",
-        "synthrt"
+        "synthrt",
+        "phoneme-converter"
     ],
     "features": {
         "cuda11": {
