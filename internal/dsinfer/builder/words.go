@@ -100,7 +100,6 @@ func BuildWords(
 					Duration: placedNotes[0].Gap,
 					Rest:     true,
 				}},
-				Speakers: outputSpeakers,
 			},
 		})
 	}
@@ -130,7 +129,6 @@ func BuildWords(
 					word: dsinfer.Word{
 						Phonemes: wordPhonemes,
 						Notes:    wordNotes,
-						Speakers: outputSpeakers,
 					},
 				})
 			}
@@ -161,7 +159,6 @@ func BuildWords(
 				word: dsinfer.Word{
 					Phonemes: wordPhonemes,
 					Notes:    wordNotes,
-					Speakers: outputSpeakers,
 				},
 			})
 		}
@@ -178,7 +175,6 @@ func BuildWords(
 						Duration: gapLength,
 						Rest:     true,
 					}},
-					Speakers: outputSpeakers,
 				},
 			})
 		}
@@ -189,7 +185,8 @@ func BuildWords(
 		word := built.word
 		for index := range word.Phonemes {
 			sampleTime := built.start + word.Phonemes[index].Start
-			word.Phonemes[index].SpeakerProportion = sampleSpeakerProportion(mix, mixSampleRate, len(outputSpeakers), sampleTime)
+			proportions := sampleSpeakerProportion(mix, mixSampleRate, len(outputSpeakers), sampleTime)
+			word.Phonemes[index].Speakers = buildPhonemeSpeakers(outputSpeakers, proportions)
 		}
 		result = append(result, word)
 	}
@@ -205,6 +202,17 @@ func buildSpeakers(speakers []string) ([]dsinfer.Speaker, error) {
 		result = append(result, dsinfer.Speaker{ID: speaker})
 	}
 	return result, nil
+}
+
+func buildPhonemeSpeakers(speakers []dsinfer.Speaker, proportions []float64) []dsinfer.Speaker {
+	result := make([]dsinfer.Speaker, len(speakers))
+	for index, speaker := range speakers {
+		result[index] = dsinfer.Speaker{
+			ID:         speaker.ID,
+			Proportion: proportions[index],
+		}
+	}
+	return result
 }
 
 func validateMix(mix [][]float64, sampleRate float64, speakerCount int) error {

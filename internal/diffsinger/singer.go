@@ -84,6 +84,8 @@ type SingerMetadata struct {
 
 	SynthRTSinger     *synthrt.Singer
 	durationInference *dsinfer.DurationInference
+	pitchInference    *dsinfer.PitchInference
+	varianceInference *dsinfer.VarianceInference
 }
 
 type SingerLanguage struct {
@@ -323,6 +325,18 @@ func LoadSingerMetadata(packagesDir string) (map[SingerIdentifier]SingerMetadata
 			continue
 		}
 		item.durationInference = durationInference
+		pitchInference, err := dsinfer.GetPitchInference(srtSinger)
+		if err != nil {
+			logLoadError(id.PackageID, id.Version.String(), id.SingerID, singerConfigPath, fmt.Errorf("get pitch inference: %w", err))
+			continue
+		}
+		item.pitchInference = pitchInference
+		varianceInference, err := dsinfer.GetVarianceInference(srtSinger)
+		if err != nil {
+			logLoadError(id.PackageID, id.Version.String(), id.SingerID, singerConfigPath, fmt.Errorf("get variance inference: %w", err))
+			continue
+		}
+		item.varianceInference = varianceInference
 
 		metadata[id] = item
 		logger.Info(

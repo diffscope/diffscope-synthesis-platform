@@ -41,15 +41,39 @@ type Speakers struct {
 	handle uintptr
 }
 
+type DynamicMixedSpeakers struct {
+	handle uintptr
+}
+
 type Words struct {
 	handle uintptr
 }
 
+type Parameters struct {
+	handle uintptr
+}
+
+type ParameterTag int
+
+const (
+	ParameterTagPitch ParameterTag = iota
+	ParameterTagExpr
+	ParameterTagF0
+	ParameterTagToneShift
+	ParameterTagEnergy
+	ParameterTagBreathiness
+	ParameterTagVoicing
+	ParameterTagTension
+	ParameterTagMouthOpening
+	ParameterTagGender
+	ParameterTagVelocity
+)
+
 type Phoneme struct {
-	Token             string
-	Language          string
-	Start             float64
-	SpeakerProportion []float64
+	Token    string
+	Language string
+	Start    float64
+	Speakers []Speaker
 }
 
 type Note struct {
@@ -59,13 +83,31 @@ type Note struct {
 }
 
 type Speaker struct {
-	ID string
+	ID         string
+	Proportion float64
+}
+
+type DynamicMixedSpeaker struct {
+	ID          string
+	Proportions []float64
+	Interval    float64
 }
 
 type Word struct {
 	Phonemes []Phoneme
 	Notes    []Note
-	Speakers []Speaker
+}
+
+type Parameter struct {
+	Tag      ParameterTag
+	Values   []float64
+	Interval float64
+	Retake   *ParameterRetake
+}
+
+type ParameterRetake struct {
+	Start  float64
+	Length float64
 }
 
 func NewManagedDoubleArray(values []float64) (*ManagedDoubleArray, error) {
@@ -88,12 +130,12 @@ func NewPhonemes(values []Phoneme) (*Phonemes, error) {
 		native.DSSP_SetDiffSingerPhonemeLanguage(handle, int64(index), value.Language)
 		native.DSSP_SetDiffSingerPhonemeStart(handle, int64(index), value.Start)
 
-		proportion, err := NewManagedDoubleArray(value.SpeakerProportion)
+		speakers, err := NewSpeakers(value.Speakers)
 		if err != nil {
 			phonemes.Close()
 			return nil, err
 		}
-		native.DSSP_SetDiffSingerPhonemeSpeakerProportion(handle, int64(index), proportion.consume())
+		native.DSSP_SetDiffSingerPhonemeSpeakers(handle, int64(index), speakers.consume())
 	}
 	return phonemes, nil
 }
@@ -118,8 +160,29 @@ func NewSpeakers(values []Speaker) (*Speakers, error) {
 	}
 	for index, value := range values {
 		native.DSSP_SetDiffSingerSpeakerID(handle, int64(index), value.ID)
+		native.DSSP_SetDiffSingerSpeakerProportion(handle, int64(index), value.Proportion)
 	}
 	return &Speakers{handle: handle}, nil
+}
+
+func NewDynamicMixedSpeakers(values []DynamicMixedSpeaker) (*DynamicMixedSpeakers, error) {
+	handle := native.DSSP_AllocateDiffSingerDynamicMixedSpeakers(int64(len(values)))
+	if handle == 0 {
+		return nil, fmt.Errorf("dsinfer: allocate dynamic mixed speakers")
+	}
+	speakers := &DynamicMixedSpeakers{handle: handle}
+	for index, value := range values {
+		native.DSSP_SetDiffSingerDynamicMixedSpeakerID(handle, int64(index), value.ID)
+		native.DSSP_SetDiffSingerDynamicMixedSpeakerInterval(handle, int64(index), value.Interval)
+
+		proportions, err := NewManagedDoubleArray(value.Proportions)
+		if err != nil {
+			speakers.Close()
+			return nil, err
+		}
+		native.DSSP_SetDiffSingerDynamicMixedSpeakerProportions(handle, int64(index), proportions.consume())
+	}
+	return speakers, nil
 }
 
 func NewWords(values []Word) (*Words, error) {
@@ -148,14 +211,33 @@ func NewWords(values []Word) (*Words, error) {
 		}
 		native.DSSP_SetDiffSingerWordNotes(handle, int64(index), notes.consume())
 
-		speakers, err := NewSpeakers(value.Speakers)
-		if err != nil {
-			words.Close()
-			return nil, err
-		}
-		native.DSSP_SetDiffSingerWordSpeakers(handle, int64(index), speakers.consume())
 	}
 	return words, nil
+}
+
+func NewParameters(values []Parameter) (*Parameters, error) {
+	handle := native.DSSP_AllocateDiffSingerParameters(int64(len(values)))
+	if handle == 0 {
+		return nil, fmt.Errorf("dsinfer: allocate parameters")
+	}
+	parameters := &Parameters{handle: handle}
+	for index, value := range values {
+		native.DSSP_SetDiffSingerParameterTag(handle, int64(index), toNativeParameterTag(value.Tag))
+		native.DSSP_SetDiffSingerParameterInterval(handle, int64(index), value.Interval)
+		if value.Retake != nil {
+			native.DSSP_SetDiffSingerParameterRetake(handle, int64(index), true)
+			native.DSSP_SetDiffSingerParameterRetakeStart(handle, int64(index), value.Retake.Start)
+			native.DSSP_SetDiffSingerParameterRetakeLength(handle, int64(index), value.Retake.Length)
+		}
+
+		valueArray, err := NewManagedDoubleArray(value.Values)
+		if err != nil {
+			parameters.Close()
+			return nil, err
+		}
+		native.DSSP_SetDiffSingerParameterValues(handle, int64(index), valueArray.consume())
+	}
+	return parameters, nil
 }
 
 func (a *ManagedDoubleArray) Handle() uintptr {
@@ -186,11 +268,25 @@ func (s *Speakers) Handle() uintptr {
 	return s.handle
 }
 
+func (s *DynamicMixedSpeakers) Handle() uintptr {
+	if s == nil {
+		return 0
+	}
+	return s.handle
+}
+
 func (w *Words) Handle() uintptr {
 	if w == nil {
 		return 0
 	}
 	return w.handle
+}
+
+func (p *Parameters) Handle() uintptr {
+	if p == nil {
+		return 0
+	}
+	return p.handle
 }
 
 func (a *ManagedDoubleArray) Values() []float64 {
@@ -207,10 +303,10 @@ func (p *Phonemes) Values() []Phoneme {
 	for index := 0; index < count; index++ {
 		nativeIndex := int64(index)
 		result[index] = Phoneme{
-			Token:             native.DSSP_GetDiffSingerPhonemeToken(handle, nativeIndex),
-			Language:          native.DSSP_GetDiffSingerPhonemeLanguage(handle, nativeIndex),
-			Start:             native.DSSP_GetDiffSingerPhonemeStart(handle, nativeIndex),
-			SpeakerProportion: doubleArrayValues(native.DSSP_GetDiffSingerPhonemeSpeakerProportion(handle, nativeIndex)),
+			Token:    native.DSSP_GetDiffSingerPhonemeToken(handle, nativeIndex),
+			Language: native.DSSP_GetDiffSingerPhonemeLanguage(handle, nativeIndex),
+			Start:    native.DSSP_GetDiffSingerPhonemeStart(handle, nativeIndex),
+			Speakers: (&Speakers{handle: native.DSSP_GetDiffSingerPhonemeSpeakers(handle, nativeIndex)}).Values(),
 		}
 	}
 	return result
@@ -242,8 +338,33 @@ func (s *Speakers) Values() []Speaker {
 	count := int(native.DSSP_GetDiffSingerSpeakerCount(handle))
 	result := make([]Speaker, count)
 	for index := 0; index < count; index++ {
+		nativeIndex := int64(index)
 		result[index] = Speaker{
-			ID: native.DSSP_GetDiffSingerSpeakerID(handle, int64(index)),
+			ID:         native.DSSP_GetDiffSingerSpeakerID(handle, nativeIndex),
+			Proportion: native.DSSP_GetDiffSingerSpeakerProportion(handle, nativeIndex),
+		}
+	}
+	return result
+}
+
+func (s *DynamicMixedSpeakers) Values() []DynamicMixedSpeaker {
+	handle := s.Handle()
+	if handle == 0 {
+		return nil
+	}
+	count := int(native.DSSP_GetDiffSingerDynamicMixedSpeakerCount(handle))
+	result := make([]DynamicMixedSpeaker, count)
+	for index := 0; index < count; index++ {
+		nativeIndex := int64(index)
+		result[index] = DynamicMixedSpeaker{
+			ID: native.DSSP_GetDiffSingerDynamicMixedSpeakerID(
+				handle,
+				nativeIndex,
+			),
+			Proportions: (&ManagedDoubleArray{
+				handle: native.DSSP_GetDiffSingerDynamicMixedSpeakerProportions(handle, nativeIndex),
+			}).Values(),
+			Interval: native.DSSP_GetDiffSingerDynamicMixedSpeakerInterval(handle, nativeIndex),
 		}
 	}
 	return result
@@ -261,8 +382,37 @@ func (w *Words) Values() []Word {
 		result[index] = Word{
 			Phonemes: (&Phonemes{handle: native.DSSP_GetDiffSingerWordPhonemes(handle, nativeIndex)}).Values(),
 			Notes:    (&Notes{handle: native.DSSP_GetDiffSingerWordNotes(handle, nativeIndex)}).Values(),
-			Speakers: (&Speakers{handle: native.DSSP_GetDiffSingerWordSpeakers(handle, nativeIndex)}).Values(),
 		}
+	}
+	return result
+}
+
+func (p *Parameters) Values() []Parameter {
+	handle := p.Handle()
+	if handle == 0 {
+		return nil
+	}
+	count := int(native.DSSP_GetDiffSingerParameterCount(handle))
+	result := make([]Parameter, count)
+	for index := 0; index < count; index++ {
+		nativeIndex := int64(index)
+		parameter := Parameter{
+			Tag: fromNativeParameterTag(native.DSSP_GetDiffSingerParameterTag(
+				handle,
+				nativeIndex,
+			)),
+			Values: (&ManagedDoubleArray{
+				handle: native.DSSP_GetDiffSingerParameterValues(handle, nativeIndex),
+			}).Values(),
+			Interval: native.DSSP_GetDiffSingerParameterInterval(handle, nativeIndex),
+		}
+		if native.DSSP_IsDiffSingerParameterRetake(handle, nativeIndex) {
+			parameter.Retake = &ParameterRetake{
+				Start:  native.DSSP_GetDiffSingerParameterRetakeStart(handle, nativeIndex),
+				Length: native.DSSP_GetDiffSingerParameterRetakeLength(handle, nativeIndex),
+			}
+		}
+		result[index] = parameter
 	}
 	return result
 }
@@ -295,10 +445,24 @@ func (s *Speakers) Close() {
 	}
 }
 
+func (s *DynamicMixedSpeakers) Close() {
+	handle := s.consume()
+	if handle != 0 {
+		native.DSSP_FreeDiffSingerDynamicMixedSpeakers(handle)
+	}
+}
+
 func (w *Words) Close() {
 	handle := w.consume()
 	if handle != 0 {
 		native.DSSP_FreeDiffSingerWords(handle)
+	}
+}
+
+func (p *Parameters) Close() {
+	handle := p.consume()
+	if handle != 0 {
+		native.DSSP_FreeDiffSingerParameters(handle)
 	}
 }
 
@@ -338,6 +502,15 @@ func (s *Speakers) consume() uintptr {
 	return handle
 }
 
+func (s *DynamicMixedSpeakers) consume() uintptr {
+	if s == nil {
+		return 0
+	}
+	handle := s.handle
+	s.handle = 0
+	return handle
+}
+
 func (w *Words) consume() uintptr {
 	if w == nil {
 		return 0
@@ -347,16 +520,80 @@ func (w *Words) consume() uintptr {
 	return handle
 }
 
-func validateWord(word Word) error {
-	if len(word.Speakers) == 0 {
-		return fmt.Errorf("dsinfer: word speakers cannot be empty")
+func (p *Parameters) consume() uintptr {
+	if p == nil {
+		return 0
 	}
+	handle := p.handle
+	p.handle = 0
+	return handle
+}
+
+func validateWord(word Word) error {
 	for index, phoneme := range word.Phonemes {
-		if len(phoneme.SpeakerProportion) != len(word.Speakers) {
-			return fmt.Errorf("dsinfer: phoneme %d speaker proportion count does not match speaker count", index)
+		if len(phoneme.Speakers) == 0 {
+			return fmt.Errorf("dsinfer: phoneme %d speakers cannot be empty", index)
 		}
 	}
 	return nil
+}
+
+func toNativeParameterTag(tag ParameterTag) native.DSSP_DiffSingerParameterTag {
+	switch tag {
+	case ParameterTagPitch:
+		return native.DSSP_DiffSingerParameterTag_Pitch
+	case ParameterTagExpr:
+		return native.DSSP_DiffSingerParameterTag_Expr
+	case ParameterTagF0:
+		return native.DSSP_DiffSingerParameterTag_F0
+	case ParameterTagToneShift:
+		return native.DSSP_DiffSingerParameterTag_ToneShift
+	case ParameterTagEnergy:
+		return native.DSSP_DiffSingerParameterTag_Energy
+	case ParameterTagBreathiness:
+		return native.DSSP_DiffSingerParameterTag_Breathiness
+	case ParameterTagVoicing:
+		return native.DSSP_DiffSingerParameterTag_Voicing
+	case ParameterTagTension:
+		return native.DSSP_DiffSingerParameterTag_Tension
+	case ParameterTagMouthOpening:
+		return native.DSSP_DiffSingerParameterTag_MouthOpening
+	case ParameterTagGender:
+		return native.DSSP_DiffSingerParameterTag_Gender
+	case ParameterTagVelocity:
+		return native.DSSP_DiffSingerParameterTag_Velocity
+	default:
+		return native.DSSP_DiffSingerParameterTag(tag)
+	}
+}
+
+func fromNativeParameterTag(tag native.DSSP_DiffSingerParameterTag) ParameterTag {
+	switch tag {
+	case native.DSSP_DiffSingerParameterTag_Pitch:
+		return ParameterTagPitch
+	case native.DSSP_DiffSingerParameterTag_Expr:
+		return ParameterTagExpr
+	case native.DSSP_DiffSingerParameterTag_F0:
+		return ParameterTagF0
+	case native.DSSP_DiffSingerParameterTag_ToneShift:
+		return ParameterTagToneShift
+	case native.DSSP_DiffSingerParameterTag_Energy:
+		return ParameterTagEnergy
+	case native.DSSP_DiffSingerParameterTag_Breathiness:
+		return ParameterTagBreathiness
+	case native.DSSP_DiffSingerParameterTag_Voicing:
+		return ParameterTagVoicing
+	case native.DSSP_DiffSingerParameterTag_Tension:
+		return ParameterTagTension
+	case native.DSSP_DiffSingerParameterTag_MouthOpening:
+		return ParameterTagMouthOpening
+	case native.DSSP_DiffSingerParameterTag_Gender:
+		return ParameterTagGender
+	case native.DSSP_DiffSingerParameterTag_Velocity:
+		return ParameterTagVelocity
+	default:
+		return ParameterTag(tag)
+	}
 }
 
 func copyDoubleArray(handle uintptr, values []float64) {

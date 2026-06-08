@@ -31,11 +31,37 @@ namespace dssp {
 
 	using DiffSingerManagedDoubleArray = std::vector<double>;
 
+	struct DiffSingerSpeaker {
+		std::string id;
+		double proportion = 0.0;
+	};
+
+	using DiffSingerSpeakers = std::vector<DiffSingerSpeaker>;
+
+	struct DiffSingerDynamicMixedSpeaker {
+		std::string id;
+		std::unique_ptr<DiffSingerManagedDoubleArray> proportions;
+		double interval = 0.0;
+	};
+
+	using DiffSingerDynamicMixedSpeakers = std::vector<DiffSingerDynamicMixedSpeaker>;
+
+	struct DiffSingerParameter {
+		DSSP_DiffSingerParameterTag tag = DSSP_DiffSingerParameterTag_Pitch;
+		std::unique_ptr<DiffSingerManagedDoubleArray> values;
+		double interval = 0.0;
+		bool isRetake = false;
+		double retakeStart = 0.0;
+		double retakeLength = 0.0;
+	};
+
+	using DiffSingerParameters = std::vector<DiffSingerParameter>;
+
 	struct DiffSingerPhoneme {
 		std::string token;
 		std::string language;
 		double start = 0.0;
-		std::unique_ptr<DiffSingerManagedDoubleArray> speakerProportion;
+		std::unique_ptr<DiffSingerSpeakers> speakers;
 	};
 
 	struct DiffSingerNote {
@@ -44,18 +70,12 @@ namespace dssp {
 		bool isRest = false;
 	};
 
-	struct DiffSingerSpeaker {
-		std::string id;
-	};
-
 	using DiffSingerPhonemes = std::vector<DiffSingerPhoneme>;
 	using DiffSingerNotes = std::vector<DiffSingerNote>;
-	using DiffSingerSpeakers = std::vector<DiffSingerSpeaker>;
 
 	struct DiffSingerWord {
 		std::unique_ptr<DiffSingerPhonemes> phonemes;
 		std::unique_ptr<DiffSingerNotes> notes;
-		std::unique_ptr<DiffSingerSpeakers> speakers;
 	};
 
 	using DiffSingerWords = std::vector<DiffSingerWord>;
@@ -64,10 +84,30 @@ namespace dssp {
 	DiffSingerPhonemes *getDiffSingerPhonemes(DSSP_DiffSingerPhonemes phonemes);
 	DiffSingerNotes *getDiffSingerNotes(DSSP_DiffSingerNotes notes);
 	DiffSingerSpeakers *getDiffSingerSpeakers(DSSP_DiffSingerSpeakers speakers);
+	DiffSingerDynamicMixedSpeakers *getDiffSingerDynamicMixedSpeakers(
+		DSSP_DiffSingerDynamicMixedSpeakers speakers
+	);
+	DiffSingerParameters *getDiffSingerParameters(DSSP_DiffSingerParameters parameters);
 	DiffSingerWords *getDiffSingerWords(DSSP_DiffSingerWords words);
 
 	ds::Api::Common::L1::InputWordInfo toDsinferInputWordInfo(const DiffSingerWord &word);
 	std::vector<ds::Api::Common::L1::InputWordInfo> toDsinferInputWordInfos(const DiffSingerWords &words);
+	ds::Api::Common::L1::InputSpeakerInfo toDsinferInputSpeakerInfo(
+		const DiffSingerDynamicMixedSpeaker &speaker
+	);
+	std::vector<ds::Api::Common::L1::InputSpeakerInfo> toDsinferInputSpeakerInfos(
+		const DiffSingerDynamicMixedSpeakers &speakers
+	);
+	ds::Api::Common::L1::InputParameterInfo toDsinferInputParameterInfo(const DiffSingerParameter &parameter);
+	std::vector<ds::Api::Common::L1::InputParameterInfo> toDsinferInputParameterInfos(
+		const DiffSingerParameters &parameters
+	);
+	DiffSingerParameter fromDsinferInputParameterInfo(
+		const ds::Api::Common::L1::InputParameterInfo &parameter
+	);
+	DiffSingerParameters fromDsinferInputParameterInfos(
+		const std::vector<ds::Api::Common::L1::InputParameterInfo> &parameters
+	);
 
 } // namespace dssp
 

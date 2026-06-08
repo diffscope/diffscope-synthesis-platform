@@ -160,6 +160,28 @@ void DSSP_FreeDiffSingerManagedDoubleArray(DSSP_DiffSingerManagedDoubleArray arr
 size_t DSSP_GetDiffSingerManagedDoubleArrayCount(DSSP_DiffSingerManagedDoubleArray array);
 double *DSSP_GetDiffSingerManagedDoubleArrayData(DSSP_DiffSingerManagedDoubleArray array);
 
+typedef void *DSSP_DiffSingerSpeakers;
+
+DSSP_DiffSingerSpeakers DSSP_AllocateDiffSingerSpeakers(size_t count);
+void DSSP_FreeDiffSingerSpeakers(DSSP_DiffSingerSpeakers speakers);
+size_t DSSP_GetDiffSingerSpeakerCount(DSSP_DiffSingerSpeakers speakers);
+const char *DSSP_GetDiffSingerSpeakerID(DSSP_DiffSingerSpeakers speakers, size_t index);
+void DSSP_SetDiffSingerSpeakerID(DSSP_DiffSingerSpeakers speakers, size_t index, const char *speakerID);
+double DSSP_GetDiffSingerSpeakerProportion(DSSP_DiffSingerSpeakers speakers, size_t index);
+void DSSP_SetDiffSingerSpeakerProportion(DSSP_DiffSingerSpeakers speakers, size_t index, double proportion);
+
+typedef void *DSSP_DiffSingerDynamicMixedSpeakers;
+
+DSSP_DiffSingerDynamicMixedSpeakers DSSP_AllocateDiffSingerDynamicMixedSpeakers(size_t count);
+void DSSP_FreeDiffSingerDynamicMixedSpeakers(DSSP_DiffSingerDynamicMixedSpeakers speakers);
+size_t DSSP_GetDiffSingerDynamicMixedSpeakerCount(DSSP_DiffSingerDynamicMixedSpeakers speakers);
+const char *DSSP_GetDiffSingerDynamicMixedSpeakerID(DSSP_DiffSingerDynamicMixedSpeakers speakers, size_t index);
+void DSSP_SetDiffSingerDynamicMixedSpeakerID(DSSP_DiffSingerDynamicMixedSpeakers speakers, size_t index, const char *speakerID);
+DSSP_DiffSingerManagedDoubleArray DSSP_GetDiffSingerDynamicMixedSpeakerProportions(DSSP_DiffSingerDynamicMixedSpeakers speakers, size_t index);
+void DSSP_SetDiffSingerDynamicMixedSpeakerProportions(DSSP_DiffSingerDynamicMixedSpeakers speakers, size_t index, DSSP_DiffSingerManagedDoubleArray proportions);
+double DSSP_GetDiffSingerDynamicMixedSpeakerInterval(DSSP_DiffSingerDynamicMixedSpeakers speakers, size_t index);
+void DSSP_SetDiffSingerDynamicMixedSpeakerInterval(DSSP_DiffSingerDynamicMixedSpeakers speakers, size_t index, double interval);
+
 typedef void *DSSP_DiffSingerPhonemes;
 
 DSSP_DiffSingerPhonemes DSSP_AllocateDiffSingerPhonemes(size_t count);
@@ -171,8 +193,8 @@ const char *DSSP_GetDiffSingerPhonemeLanguage(DSSP_DiffSingerPhonemes phonemes, 
 void DSSP_SetDiffSingerPhonemeLanguage(DSSP_DiffSingerPhonemes phonemes, size_t index, const char *language);
 double DSSP_GetDiffSingerPhonemeStart(DSSP_DiffSingerPhonemes phonemes, size_t index);
 void DSSP_SetDiffSingerPhonemeStart(DSSP_DiffSingerPhonemes phonemes, size_t index, double start);
-DSSP_DiffSingerManagedDoubleArray DSSP_GetDiffSingerPhonemeSpeakerProportion(DSSP_DiffSingerPhonemes phonemes, size_t index);
-void DSSP_SetDiffSingerPhonemeSpeakerProportion(DSSP_DiffSingerPhonemes phonemes, size_t index, DSSP_DiffSingerManagedDoubleArray speakerProportion);
+DSSP_DiffSingerSpeakers DSSP_GetDiffSingerPhonemeSpeakers(DSSP_DiffSingerPhonemes phonemes, size_t index);
+void DSSP_SetDiffSingerPhonemeSpeakers(DSSP_DiffSingerPhonemes phonemes, size_t index, DSSP_DiffSingerSpeakers speakers);
 
 typedef void *DSSP_DiffSingerNotes;
 
@@ -186,14 +208,6 @@ void DSSP_SetDiffSingerNoteDuration(DSSP_DiffSingerNotes notes, size_t index, do
 bool DSSP_IsDiffSingerNoteRest(DSSP_DiffSingerNotes notes, size_t index);
 void DSSP_SetDiffSingerNoteRest(DSSP_DiffSingerNotes notes, size_t index, bool isRest);
 
-typedef void *DSSP_DiffSingerSpeakers;
-
-DSSP_DiffSingerSpeakers DSSP_AllocateDiffSingerSpeakers(size_t count);
-void DSSP_FreeDiffSingerSpeakers(DSSP_DiffSingerSpeakers speakers);
-size_t DSSP_GetDiffSingerSpeakerCount(DSSP_DiffSingerSpeakers speakers);
-const char *DSSP_GetDiffSingerSpeakerID(DSSP_DiffSingerSpeakers speakers, size_t index);
-void DSSP_SetDiffSingerSpeakerID(DSSP_DiffSingerSpeakers speakers, size_t index, const char *speakerID);
-
 typedef void *DSSP_DiffSingerWords;
 
 DSSP_DiffSingerWords DSSP_AllocateDiffSingerWords(size_t count);
@@ -203,8 +217,38 @@ DSSP_DiffSingerPhonemes DSSP_GetDiffSingerWordPhonemes(DSSP_DiffSingerWords word
 void DSSP_SetDiffSingerWordPhonemes(DSSP_DiffSingerWords words, size_t index, DSSP_DiffSingerPhonemes phonemes);
 DSSP_DiffSingerNotes DSSP_GetDiffSingerWordNotes(DSSP_DiffSingerWords words, size_t index);
 void DSSP_SetDiffSingerWordNotes(DSSP_DiffSingerWords words, size_t index, DSSP_DiffSingerNotes notes);
-DSSP_DiffSingerSpeakers DSSP_GetDiffSingerWordSpeakers(DSSP_DiffSingerWords words, size_t index);
-void DSSP_SetDiffSingerWordSpeakers(DSSP_DiffSingerWords words, size_t index, DSSP_DiffSingerSpeakers speakers);
+
+typedef void *DSSP_DiffSingerParameters;
+
+typedef enum DSSP_DiffSingerParameterTag {
+	DSSP_DiffSingerParameterTag_Pitch,
+	DSSP_DiffSingerParameterTag_Expr,
+	DSSP_DiffSingerParameterTag_F0,
+	DSSP_DiffSingerParameterTag_ToneShift,
+	DSSP_DiffSingerParameterTag_Energy,
+	DSSP_DiffSingerParameterTag_Breathiness,
+	DSSP_DiffSingerParameterTag_Voicing,
+	DSSP_DiffSingerParameterTag_Tension,
+	DSSP_DiffSingerParameterTag_MouthOpening,
+	DSSP_DiffSingerParameterTag_Gender,
+	DSSP_DiffSingerParameterTag_Velocity,
+} DSSP_DiffSingerParameterTag;
+
+DSSP_DiffSingerParameters DSSP_AllocateDiffSingerParameters(size_t count);
+void DSSP_FreeDiffSingerParameters(DSSP_DiffSingerParameters parameters);
+size_t DSSP_GetDiffSingerParameterCount(DSSP_DiffSingerParameters parameters);
+DSSP_DiffSingerParameterTag DSSP_GetDiffSingerParameterTag(DSSP_DiffSingerParameters parameters, size_t index);
+void DSSP_SetDiffSingerParameterTag(DSSP_DiffSingerParameters parameters, size_t index, DSSP_DiffSingerParameterTag parameterName);
+DSSP_DiffSingerManagedDoubleArray DSSP_GetDiffSingerParameterValues(DSSP_DiffSingerParameters parameters, size_t index);
+void DSSP_SetDiffSingerParameterValues(DSSP_DiffSingerParameters parameters, size_t index, DSSP_DiffSingerManagedDoubleArray values);
+double DSSP_GetDiffSingerParameterInterval(DSSP_DiffSingerParameters parameters, size_t index);
+void DSSP_SetDiffSingerParameterInterval(DSSP_DiffSingerParameters parameters, size_t index, double interval);
+bool DSSP_IsDiffSingerParameterRetake(DSSP_DiffSingerParameters parameters, size_t index);
+void DSSP_SetDiffSingerParameterRetake(DSSP_DiffSingerParameters parameters, size_t index, bool isRetake);
+double DSSP_GetDiffSingerParameterRetakeStart(DSSP_DiffSingerParameters parameters, size_t index);
+void DSSP_SetDiffSingerParameterRetakeStart(DSSP_DiffSingerParameters parameters, size_t index, double retakeStart);
+double DSSP_GetDiffSingerParameterRetakeLength(DSSP_DiffSingerParameters parameters, size_t index);
+void DSSP_SetDiffSingerParameterRetakeLength(DSSP_DiffSingerParameters parameters, size_t index, double retakeLength);
 
 /* ========================================================================
  * dsinfer (inference)
@@ -229,6 +273,46 @@ DSSP_DiffSingerManagedDoubleArray DSSP_RunDiffSingerDurationInferenceTask(DSSP_D
 
 // thread-safe
 void DSSP_TerminateDiffSingerDurationInferenceTask(DSSP_DiffSingerDurationInferenceTask task);
+
+typedef void *DSSP_DiffSingerPitchInference;
+
+DSSP_DiffSingerPitchInference DSSP_GetDiffSingerPitchInference(DSSP_SRTSinger singer);
+const char *DSSP_GetDiffSingerPitchInferenceSpeakerID(DSSP_SRTSinger singer, const char *singer_speaker_id);
+
+typedef void *DSSP_DiffSingerPitchInferenceTask;
+
+DSSP_DiffSingerPitchInferenceTask DSSP_CreateDiffSingerPitchInferenceTask(DSSP_DiffSingerPitchInference inference);
+void DSSP_DeleteDiffSingerPitchInferenceTask(DSSP_DiffSingerPitchInferenceTask task);
+bool DSSP_IsDiffSingerPitchInferenceTaskError(DSSP_DiffSingerPitchInferenceTask task);
+const char *DSSP_GetDiffSingerPitchInferenceErrorMessage(DSSP_DiffSingerPitchInferenceTask task);
+DSSP_DiffSingerPitchInference DSSP_GetDiffSingerPitchInferenceTaskInference(DSSP_DiffSingerPitchInferenceTask task);
+
+// Nullable: indicates error
+// Reentrant but not thread-safe
+DSSP_DiffSingerManagedDoubleArray DSSP_RunDiffSingerPitchInferenceTask(DSSP_DiffSingerPitchInferenceTask task, double duration, DSSP_DiffSingerWords words, DSSP_DiffSingerParameters parameters, DSSP_DiffSingerDynamicMixedSpeakers dynamicMixedSpeakers, int64_t steps);
+
+// thread-safe
+void DSSP_TerminateDiffSingerPitchInferenceTask(DSSP_DiffSingerPitchInferenceTask task);
+
+typedef void *DSSP_DiffSingerVarianceInference;
+
+DSSP_DiffSingerVarianceInference DSSP_GetDiffSingerVarianceInference(DSSP_SRTSinger singer);
+const char *DSSP_GetDiffSingerVarianceInferenceSpeakerID(DSSP_SRTSinger singer, const char *singer_speaker_id);
+
+typedef void *DSSP_DiffSingerVarianceInferenceTask;
+
+DSSP_DiffSingerVarianceInferenceTask DSSP_CreateDiffSingerVarianceInferenceTask(DSSP_DiffSingerVarianceInference inference);
+void DSSP_DeleteDiffSingerVarianceInferenceTask(DSSP_DiffSingerVarianceInferenceTask task);
+bool DSSP_IsDiffSingerVarianceInferenceTaskError(DSSP_DiffSingerVarianceInferenceTask task);
+const char *DSSP_GetDiffSingerVarianceInferenceErrorMessage(DSSP_DiffSingerVarianceInferenceTask task);
+DSSP_DiffSingerVarianceInference DSSP_GetDiffSingerVarianceInferenceTaskInference(DSSP_DiffSingerVarianceInferenceTask task);
+
+// Nullable: indicates error
+// Reentrant but not thread-safe
+DSSP_DiffSingerParameters DSSP_RunDiffSingerVarianceInferenceTask(DSSP_DiffSingerVarianceInferenceTask task, double duration, DSSP_DiffSingerWords words, DSSP_DiffSingerParameters parameters, DSSP_DiffSingerDynamicMixedSpeakers dynamicMixedSpeakers, int64_t steps);
+
+// thread-safe
+void DSSP_TerminateDiffSingerVarianceInferenceTask(DSSP_DiffSingerVarianceInferenceTask task);
 
 #ifdef __cplusplus
 }
