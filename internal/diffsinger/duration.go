@@ -79,7 +79,11 @@ func (Architecture) Duration(
 	pieceDuration float64,
 	notes []api.DurationNote,
 ) (<-chan api.DurationEvent, error) {
-	_ = archExtra
+	extra, err := parseArchExtra(archExtra)
+	if err != nil {
+		return nil, err
+	}
+	_ = extra
 
 	durationInference, speakerIDs, err := prepareDurationSingers(singers)
 	if err != nil {
@@ -159,28 +163,6 @@ func prepareDurationSingers(singers []api.Singer) (*dsinfer.DurationInference, [
 	}
 
 	return durationInference, speakerIDs, nil
-}
-
-func parseSingerExtra(data json.RawMessage) (SingerExtra, error) {
-	var fields map[string]json.RawMessage
-	if err := json.Unmarshal(data, &fields); err != nil {
-		return SingerExtra{}, api.NewError(api.ErrorCodeInternalError, fmt.Sprintf("parse singer extra: %v", err))
-	}
-
-	speakerData, ok := fields["speaker"]
-	if !ok {
-		return SingerExtra{}, api.NewError(api.ErrorCodeInternalError, "singer extra speaker is required")
-	}
-
-	var speaker *string
-	if err := json.Unmarshal(speakerData, &speaker); err != nil {
-		return SingerExtra{}, api.NewError(api.ErrorCodeInternalError, fmt.Sprintf("parse singer extra speaker: %v", err))
-	}
-	if speaker == nil {
-		return SingerExtra{}, api.NewError(api.ErrorCodeInternalError, "singer extra speaker must be a string")
-	}
-	extra := SingerExtra{Speaker: *speaker}
-	return extra, nil
 }
 
 func validateSingerExtraSpeaker(metadata SingerMetadata, speaker string) error {

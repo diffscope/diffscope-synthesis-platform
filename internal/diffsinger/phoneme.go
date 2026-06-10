@@ -124,7 +124,11 @@ func (Architecture) Phoneme(
 	singer api.Singer,
 	notes []api.PronunciationNote,
 ) ([]api.PhonemeNote, error) {
-	_ = archExtra
+	extra, err := parseArchExtra(archExtra)
+	if err != nil {
+		return nil, err
+	}
+	_ = extra
 
 	singerID, ok := getSingerIdentifier(singer)
 	if !ok {

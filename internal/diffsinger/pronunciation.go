@@ -53,7 +53,11 @@ func (Architecture) Pronunciation(
 	singer api.Singer,
 	lyrics []api.Lyric,
 ) ([]api.Pronunciation, error) {
-	_ = archExtra
+	extra, err := parseArchExtra(archExtra)
+	if err != nil {
+		return nil, err
+	}
+	_ = extra
 
 	metadata, ok := getSingerMetadata(singer)
 	if !ok {

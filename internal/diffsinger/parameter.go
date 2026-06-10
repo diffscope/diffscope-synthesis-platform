@@ -36,7 +36,11 @@ func (Architecture) Parameter(
 	notes []api.Note,
 	parameters map[string]api.Parameter,
 ) (<-chan api.ParameterEvent, error) {
-	_ = archExtra
+	extra, err := parseArchExtra(archExtra)
+	if err != nil {
+		return nil, err
+	}
+	_ = extra
 	_ = singers
 	_ = mix
 	_ = mixSampleRate
