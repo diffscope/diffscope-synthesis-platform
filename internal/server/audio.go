@@ -79,7 +79,6 @@ func PostAudio(c *gin.Context) {
 		singers,
 		request.Input.Mix,
 		*request.Input.MixSampleRate,
-		*request.Input.ParameterSampleRate,
 		input.PieceDuration,
 		input.Notes,
 		input.Parameters,

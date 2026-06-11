@@ -100,7 +100,6 @@ func (Architecture) Parameter(
 	singers []api.Singer,
 	mix [][]float64,
 	mixSampleRate float64,
-	parameterSampleRate float64,
 	pieceDuration float64,
 	notes []api.Note,
 	parameters map[string]api.Parameter,
@@ -134,7 +133,7 @@ func (Architecture) Parameter(
 		if err != nil {
 			return nil, parameterAPIError(err)
 		}
-		pitchParameters, err = buildPitchParameters(parameterSampleRate, parameters)
+		pitchParameters, err = buildPitchParameters(parameters)
 		if err != nil {
 			return nil, err
 		}
@@ -163,7 +162,6 @@ func (Architecture) Parameter(
 		ctx,
 		events,
 		extra.Steps,
-		parameterSampleRate,
 		pieceDuration,
 		parameters,
 		plan,
@@ -323,7 +321,7 @@ func convertParameterNotes(notes []api.Note) []builder.Note {
 	return result
 }
 
-func buildPitchParameters(sampleRate float64, parameters map[string]api.Parameter) ([]dsinfer.Parameter, error) {
+func buildPitchParameters(parameters map[string]api.Parameter) ([]dsinfer.Parameter, error) {
 	expressiveness, ok := parameters[parameterIDExpressiveness]
 	if !ok {
 		return nil, newInvalidParameterError("missing expressiveness parameter")
@@ -336,11 +334,11 @@ func buildPitchParameters(sampleRate float64, parameters map[string]api.Paramete
 		return nil, newInvalidParameterError("missing pitch retake")
 	}
 
-	expressivenessParameter, err := buildParameter(parameterIDExpressiveness, sampleRate, expressiveness, false)
+	expressivenessParameter, err := buildParameter(parameterIDExpressiveness, expressiveness, false)
 	if err != nil {
 		return nil, err
 	}
-	pitchParameter, err := buildParameter(parameterIDPitch, sampleRate, pitch, true)
+	pitchParameter, err := buildParameter(parameterIDPitch, pitch, true)
 	if err != nil {
 		return nil, err
 	}
@@ -348,24 +346,23 @@ func buildPitchParameters(sampleRate float64, parameters map[string]api.Paramete
 }
 
 func buildVarianceParameters(
-	sampleRate float64,
 	parameters map[string]api.Parameter,
 	varianceRetakes map[string]bool,
-	pitch []float64,
+	pitch *dsinfer.Parameter,
 ) ([]dsinfer.Parameter, error) {
 	result := make([]dsinfer.Parameter, 0, len(varianceRetakes)+1)
 	if pitch != nil {
 		result = append(result, dsinfer.Parameter{
-			Tag:      dsinfer.ParameterTagPitch,
-			Values:   append([]float64(nil), pitch...),
-			Interval: 1 / sampleRate,
+			Tag:      pitch.Tag,
+			Values:   append([]float64(nil), pitch.Values...),
+			Interval: pitch.Interval,
 		})
 	} else {
 		pitchParameter, ok := parameters[parameterIDPitch]
 		if !ok {
 			return nil, newInvalidParameterError("missing pitch parameter")
 		}
-		parameter, err := buildParameter(parameterIDPitch, sampleRate, pitchParameter, false)
+		parameter, err := buildParameter(parameterIDPitch, pitchParameter, false)
 		if err != nil {
 			return nil, err
 		}
@@ -376,7 +373,7 @@ func buildVarianceParameters(
 		if !varianceRetakes[id] {
 			continue
 		}
-		parameter, err := buildParameter(id, sampleRate, parameters[id], true)
+		parameter, err := buildParameter(id, parameters[id], true)
 		if err != nil {
 			return nil, err
 		}
@@ -385,7 +382,7 @@ func buildVarianceParameters(
 	return result, nil
 }
 
-func buildParameter(id string, sampleRate float64, parameter api.Parameter, retake bool) (dsinfer.Parameter, error) {
+func buildParameter(id string, parameter api.Parameter, retake bool) (dsinfer.Parameter, error) {
 	retakePosition := 0
 	retakeLength := 0
 	if retake {
@@ -396,7 +393,7 @@ func buildParameter(id string, sampleRate float64, parameter api.Parameter, reta
 		retakeLength = parameter.Retake.Length
 	}
 	values := parameterValuesOrDefault(id, parameter.Values)
-	result, err := builder.BuildParameter(id, sampleRate, values, retake, retakePosition, retakeLength)
+	result, err := builder.BuildParameter(id, parameter.SampleRate, values, retake, retakePosition, retakeLength)
 	if err != nil {
 		return dsinfer.Parameter{}, newInvalidParameterError(err.Error())
 	}
@@ -417,7 +414,6 @@ func runParameterInference(
 	ctx context.Context,
 	events chan<- api.ParameterEvent,
 	steps int64,
-	parameterSampleRate float64,
 	pieceDuration float64,
 	inputParameters map[string]api.Parameter,
 	plan parameterPlan,
@@ -430,10 +426,10 @@ func runParameterInference(
 	defer close(events)
 
 	output := api.ParameterOutput{
-		Parameters: map[string][]float64{},
+		Parameters: map[string]api.ParameterOutputParameter{},
 	}
 	queued := false
-	var pitch []float64
+	var pitch *dsinfer.Parameter
 
 	if plan.needsPitch() {
 		result, ok := runPitchParameterInference(
@@ -454,9 +450,9 @@ func runParameterInference(
 			sendParameterError(ctx, events, result.Err)
 			return
 		}
-		pitch = result.Pitch
+		pitch = &result.Pitch
 
-		id, values, err := builder.ParseParameter(dsinfer.ParameterTagPitch, result.Pitch)
+		id, values, sampleRate, err := builder.ParseParameter(result.Pitch)
 		if err != nil {
 			sendParameterError(ctx, events, err)
 			return
@@ -465,10 +461,13 @@ func runParameterInference(
 			sendParameterError(ctx, events, api.NewError(api.ErrorCodeInternalError, "pitch result tag mismatch"))
 			return
 		}
-		output.Parameters[parameterIDPitch] = values
+		output.Parameters[parameterIDPitch] = api.ParameterOutputParameter{
+			Values:     values,
+			SampleRate: sampleRate,
+		}
 		if plan.needsVariance() && !sendParameterEvent(ctx, events, api.ParameterEvent{
 			State:  api.StateProcessing,
-			Output: api.ParameterOutput{Parameters: cloneParameterValues(output.Parameters)},
+			Output: api.ParameterOutput{Parameters: cloneParameterOutput(output.Parameters)},
 		}) {
 			return
 		}
@@ -476,7 +475,6 @@ func runParameterInference(
 
 	if plan.needsVariance() {
 		varianceParameters, err := buildVarianceParameters(
-			parameterSampleRate,
 			inputParameters,
 			plan.varianceRetakes,
 			pitch,
@@ -504,8 +502,8 @@ func runParameterInference(
 			return
 		}
 
-		for id, values := range parseVarianceParameters(result.Parameters, plan.varianceRetakes) {
-			output.Parameters[id] = values
+		for id, parameter := range parseVarianceParameters(result.Parameters, plan.varianceRetakes, inputParameters) {
+			output.Parameters[id] = parameter
 		}
 	}
 
@@ -724,11 +722,15 @@ func waitVarianceParameterInference(
 	}, true
 }
 
-func parseVarianceParameters(parameters []dsinfer.Parameter, requested map[string]bool) map[string][]float64 {
-	output := make(map[string][]float64, len(requested))
+func parseVarianceParameters(
+	parameters []dsinfer.Parameter,
+	requested map[string]bool,
+	inputParameters map[string]api.Parameter,
+) map[string]api.ParameterOutputParameter {
+	output := make(map[string]api.ParameterOutputParameter, len(requested))
 	seen := make(map[string]bool, len(varianceParameterIDs))
 	for _, parameter := range parameters {
-		id, values, err := builder.ParseParameter(parameter.Tag, parameter.Values)
+		id, values, sampleRate, err := builder.ParseParameter(parameter)
 		if err != nil {
 			panic(err)
 		}
@@ -740,12 +742,18 @@ func parseVarianceParameters(parameters []dsinfer.Parameter, requested map[strin
 		}
 		seen[id] = true
 		if requested[id] {
-			output[id] = values
+			output[id] = api.ParameterOutputParameter{
+				Values:     values,
+				SampleRate: sampleRate,
+			}
 		}
 	}
 	for _, id := range varianceParameterIDs {
 		if !seen[id] && requested[id] {
-			output[id] = []float64{0}
+			output[id] = api.ParameterOutputParameter{
+				Values:     []float64{0},
+				SampleRate: inputParameters[id].SampleRate,
+			}
 		}
 	}
 	return output
@@ -761,7 +769,7 @@ func makeEmptyParameterEvents() <-chan api.ParameterEvent {
 	events <- api.ParameterEvent{
 		State: api.StateComplete,
 		Output: api.ParameterOutput{
-			Parameters: map[string][]float64{},
+			Parameters: map[string]api.ParameterOutputParameter{},
 		},
 	}
 	close(events)
@@ -790,10 +798,13 @@ func sendParameterError(ctx context.Context, events chan<- api.ParameterEvent, e
 	})
 }
 
-func cloneParameterValues(values map[string][]float64) map[string][]float64 {
-	result := make(map[string][]float64, len(values))
-	for id, item := range values {
-		result[id] = append([]float64(nil), item...)
+func cloneParameterOutput(parameters map[string]api.ParameterOutputParameter) map[string]api.ParameterOutputParameter {
+	result := make(map[string]api.ParameterOutputParameter, len(parameters))
+	for id, item := range parameters {
+		result[id] = api.ParameterOutputParameter{
+			Values:     append([]float64(nil), item.Values...),
+			SampleRate: item.SampleRate,
+		}
 	}
 	return result
 }

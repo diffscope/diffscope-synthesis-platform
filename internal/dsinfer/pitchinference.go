@@ -50,11 +50,11 @@ type PitchInferenceRun struct {
 }
 
 type PitchInferenceResult struct {
-	Pitch []float64
+	Pitch Parameter
 	Err   error
 }
 
-var pitchInferenceQueue = utils.NewSerializedTaskQueue[[]float64]()
+var pitchInferenceQueue = utils.NewSerializedTaskQueue[Parameter]()
 
 func GetPitchInference(singer *synthrt.Singer) (*PitchInference, error) {
 	if singer == nil || singer.Handle() == 0 {
@@ -166,9 +166,9 @@ func (t *PitchInferenceTask) Start(
 	t.runs[run] = struct{}{}
 	t.wg.Add(1)
 
-	queued := pitchInferenceQueue.Submit(utils.SerializedTaskSpec[[]float64]{
+	queued := pitchInferenceQueue.Submit(utils.SerializedTaskSpec[Parameter]{
 		Context: ctx,
-		Run: func(context.Context) ([]float64, error) {
+		Run: func(context.Context) (Parameter, error) {
 			defer cleanup()
 
 			t.runMu.Lock()
@@ -182,11 +182,14 @@ func (t *PitchInferenceTask) Start(
 				steps,
 			)
 			if resultHandle == 0 {
-				return nil, pitchInferenceError("run pitch inference task", taskHandle)
+				return Parameter{}, pitchInferenceError("run pitch inference task", taskHandle)
 			}
-			result := (&ManagedDoubleArray{handle: resultHandle}).Values()
-			native.DSSP_FreeDiffSingerManagedDoubleArray(resultHandle)
-			return result, nil
+			result := (&Parameters{handle: resultHandle}).Values()
+			native.DSSP_FreeDiffSingerParameters(resultHandle)
+			if len(result) != 1 {
+				return Parameter{}, fmt.Errorf("dsinfer: pitch inference returned %d parameters", len(result))
+			}
+			return result[0], nil
 		},
 		Terminate: func() {
 			native.DSSP_TerminateDiffSingerPitchInferenceTask(taskHandle)

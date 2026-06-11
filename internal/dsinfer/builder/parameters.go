@@ -215,23 +215,26 @@ func BuildParameter(
 }
 
 // ParseParameter converts a dsinfer parameter back into service-facing values.
-func ParseParameter(tag dsinfer.ParameterTag, values []float64) (string, []float64, error) {
-	spec, ok := parameterSpecsByTag[tag]
+func ParseParameter(parameter dsinfer.Parameter) (string, []float64, float64, error) {
+	spec, ok := parameterSpecsByTag[parameter.Tag]
 	if !ok {
-		return "", nil, fmt.Errorf("dsinfer/builder: unknown parameter tag %d", tag)
+		return "", nil, 0, fmt.Errorf("dsinfer/builder: unknown parameter tag %d", parameter.Tag)
+	}
+	if parameter.Interval <= 0 || math.IsNaN(parameter.Interval) || math.IsInf(parameter.Interval, 0) {
+		return "", nil, 0, fmt.Errorf("dsinfer/builder: parameter %q interval must be positive and finite", spec.id)
 	}
 
-	parsedValues := make([]float64, len(values))
-	for index, value := range values {
+	parsedValues := make([]float64, len(parameter.Values))
+	for index, value := range parameter.Values {
 		if math.IsNaN(value) || math.IsInf(value, 0) {
-			return "", nil, fmt.Errorf(
+			return "", nil, 0, fmt.Errorf(
 				"dsinfer/builder: parameter %q value %d must be finite",
 				spec.id,
 				index,
 			)
 		}
 		if spec.tag == dsinfer.ParameterTagVelocity && value <= 0 {
-			return "", nil, fmt.Errorf(
+			return "", nil, 0, fmt.Errorf(
 				"dsinfer/builder: parameter %q value %d must be positive",
 				spec.id,
 				index,
@@ -239,7 +242,7 @@ func ParseParameter(tag dsinfer.ParameterTag, values []float64) (string, []float
 		}
 		parsedValues[index] = spec.inverseTransform(value)
 	}
-	return spec.id, parsedValues, nil
+	return spec.id, parsedValues, 1 / parameter.Interval, nil
 }
 
 func makeParameterSpecsByID(specs []parameterSpec) map[string]parameterSpec {

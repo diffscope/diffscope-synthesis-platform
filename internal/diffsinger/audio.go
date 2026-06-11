@@ -75,7 +75,6 @@ func (Architecture) Audio(
 	singers []api.Singer,
 	mix [][]float64,
 	mixSampleRate float64,
-	parameterSampleRate float64,
 	pieceDuration float64,
 	notes []api.Note,
 	parameters map[string]api.AudioParameter,
@@ -101,7 +100,7 @@ func (Architecture) Audio(
 	if err != nil {
 		return nil, audioAPIError(err)
 	}
-	audioParameters, err := buildAudioParameters(parameterSampleRate, parameters)
+	audioParameters, err := buildAudioParameters(parameters)
 	if err != nil {
 		return nil, err
 	}
@@ -183,14 +182,21 @@ func prepareAudioSingers(singers []api.Singer) (*dsinfer.AcousticInference, *dsi
 	return acousticInference, vocoderInference, speakerIDs, nil
 }
 
-func buildAudioParameters(sampleRate float64, parameters map[string]api.AudioParameter) ([]dsinfer.Parameter, error) {
+func buildAudioParameters(parameters map[string]api.AudioParameter) ([]dsinfer.Parameter, error) {
 	result := make([]dsinfer.Parameter, 0, len(audioParameterIDs))
 	for _, id := range audioParameterIDs {
 		parameter, ok := parameters[id]
 		if !ok {
 			return nil, newInvalidParameterError(fmt.Sprintf("missing %s parameter", id))
 		}
-		built, err := builder.BuildParameter(id, sampleRate, audioParameterValuesOrDefault(parameter.Values), false, 0, 0)
+		built, err := builder.BuildParameter(
+			id,
+			parameter.SampleRate,
+			audioParameterValuesOrDefault(parameter.Values),
+			false,
+			0,
+			0,
+		)
 		if err != nil {
 			return nil, newInvalidParameterError(err.Error())
 		}

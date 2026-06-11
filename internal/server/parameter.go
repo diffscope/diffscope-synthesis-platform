@@ -84,7 +84,6 @@ func PostParameter(c *gin.Context) {
 		singers,
 		request.Input.Mix,
 		*request.Input.MixSampleRate,
-		*request.Input.ParameterSampleRate,
 		input.PieceDuration,
 		input.Notes,
 		input.Parameters,
@@ -266,7 +265,7 @@ func invalidParameterStateError() error {
 
 func emptyParameterOutput() api.ParameterOutput {
 	return api.ParameterOutput{
-		Parameters: map[string][]float64{},
+		Parameters: map[string]api.ParameterOutputParameter{},
 	}
 }
 
@@ -282,10 +281,13 @@ func mergeParameterOutput(target *api.ParameterOutput, source api.ParameterOutpu
 		return
 	}
 	if target.Parameters == nil {
-		target.Parameters = make(map[string][]float64, len(source.Parameters))
+		target.Parameters = make(map[string]api.ParameterOutputParameter, len(source.Parameters))
 	}
-	for name, values := range source.Parameters {
-		target.Parameters[name] = append([]float64(nil), values...)
+	for name, parameter := range source.Parameters {
+		target.Parameters[name] = api.ParameterOutputParameter{
+			Values:     append([]float64(nil), parameter.Values...),
+			SampleRate: parameter.SampleRate,
+		}
 	}
 }
 

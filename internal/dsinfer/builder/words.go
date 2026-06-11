@@ -109,6 +109,7 @@ func BuildWords(
 		wordStart := note.Start
 		wordEnd := note.End
 		wordNotes := []dsinfer.Note{newNote(note)}
+		keepEmptyWord := hasEmptyNonRestPhonemes(note)
 		_, body := splitHeaderAndBody(phonemesOf(note))
 		wordPhonemes := make([]dsinfer.Phoneme, 0, len(body))
 		for _, phoneme := range body {
@@ -118,12 +119,13 @@ func BuildWords(
 		for noteIndex+1 < len(placedNotes) && isSlur(placedNotes[noteIndex+1]) {
 			next := placedNotes[noteIndex+1]
 			wordNotes = append(wordNotes, newNote(next))
+			keepEmptyWord = keepEmptyWord || hasEmptyNonRestPhonemes(next)
 			wordEnd = next.End
 			noteIndex++
 		}
 
 		if noteIndex+1 >= len(placedNotes) {
-			if len(wordPhonemes) > 0 {
+			if shouldKeepWord(wordPhonemes, keepEmptyWord) {
 				builtWords = append(builtWords, builtWord{
 					start: wordStart,
 					word: dsinfer.Word{
@@ -153,7 +155,7 @@ func BuildWords(
 		if gapLength == 0 {
 			wordPhonemes = append(wordPhonemes, nextHeader...)
 		}
-		if len(wordPhonemes) > 0 {
+		if shouldKeepWord(wordPhonemes, keepEmptyWord) {
 			builtWords = append(builtWords, builtWord{
 				start: wordStart,
 				word: dsinfer.Word{
@@ -272,6 +274,14 @@ func phonemesOf(note placedNote) []Phoneme {
 		Onset:    true,
 		Language: note.Language,
 	}}
+}
+
+func shouldKeepWord(phonemes []dsinfer.Phoneme, keepEmptyWord bool) bool {
+	return len(phonemes) > 0 || keepEmptyWord
+}
+
+func hasEmptyNonRestPhonemes(note placedNote) bool {
+	return len(note.Phonemes) == 0 && !isRest(note)
 }
 
 func newNote(note placedNote) dsinfer.Note {

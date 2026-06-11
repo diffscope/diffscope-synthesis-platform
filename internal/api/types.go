@@ -200,12 +200,11 @@ type ParameterInput struct {
 }
 
 type ParameterInputRequest struct {
-	PieceDuration       *float64                    `json:"piece_duration" validate:"required,gte=0"`
-	Notes               []ParameterNoteRequest      `json:"notes" validate:"required,dive"`
-	Mix                 [][]float64                 `json:"mix" validate:"required,dive,required,dive,gte=0,lte=1"`
-	MixSampleRate       *float64                    `json:"mix_sample_rate" validate:"required,gt=0"`
-	ParameterSampleRate *float64                    `json:"parameter_sample_rate" validate:"required,gt=0"`
-	Parameters          map[string]ParameterRequest `json:"parameters" validate:"required,dive"`
+	PieceDuration *float64                    `json:"piece_duration" validate:"required,gte=0"`
+	Notes         []ParameterNoteRequest      `json:"notes" validate:"required,dive"`
+	Mix           [][]float64                 `json:"mix" validate:"required,dive,required,dive,gte=0,lte=1"`
+	MixSampleRate *float64                    `json:"mix_sample_rate" validate:"required,gt=0"`
+	Parameters    map[string]ParameterRequest `json:"parameters" validate:"required,dive"`
 }
 
 func (r ParameterInputRequest) ToParameterInput() ParameterInput {
@@ -278,13 +277,15 @@ func (r ParameterInputPhonemeRequest) ToParameterInputPhoneme() ParameterInputPh
 }
 
 type Parameter struct {
-	Values []float64        `json:"values"`
-	Retake *ParameterRetake `json:"retake"`
+	Values     []float64        `json:"values"`
+	SampleRate float64          `json:"sample_rate"`
+	Retake     *ParameterRetake `json:"retake"`
 }
 
 type ParameterRequest struct {
-	Values []float64               `json:"values" validate:"required,dive"`
-	Retake *ParameterRetakeRequest `json:"retake" validate:"omitempty"`
+	Values     []float64               `json:"values" validate:"required,dive"`
+	SampleRate *float64                `json:"sample_rate" validate:"required,gt=0"`
+	Retake     *ParameterRetakeRequest `json:"retake" validate:"omitempty"`
 }
 
 func (r ParameterRequest) ToParameter() Parameter {
@@ -294,8 +295,9 @@ func (r ParameterRequest) ToParameter() Parameter {
 		retake = &value
 	}
 	return Parameter{
-		Values: r.Values,
-		Retake: retake,
+		Values:     r.Values,
+		SampleRate: *r.SampleRate,
+		Retake:     retake,
 	}
 }
 
@@ -317,7 +319,12 @@ func (r ParameterRetakeRequest) ToParameterRetake() ParameterRetake {
 }
 
 type ParameterOutput struct {
-	Parameters map[string][]float64 `json:"parameters"`
+	Parameters map[string]ParameterOutputParameter `json:"parameters"`
+}
+
+type ParameterOutputParameter struct {
+	Values     []float64 `json:"values"`
+	SampleRate float64   `json:"sample_rate"`
 }
 
 type ParameterEvent struct {
@@ -333,12 +340,11 @@ type AudioInput struct {
 }
 
 type AudioInputRequest struct {
-	PieceDuration       *float64                         `json:"piece_duration" validate:"required,gte=0"`
-	Notes               []ParameterNoteRequest           `json:"notes" validate:"required,dive"`
-	Mix                 [][]float64                      `json:"mix" validate:"required,dive,required,dive,gte=0,lte=1"`
-	MixSampleRate       *float64                         `json:"mix_sample_rate" validate:"required,gt=0"`
-	ParameterSampleRate *float64                         `json:"parameter_sample_rate" validate:"required,gt=0"`
-	Parameters          map[string]AudioParameterRequest `json:"parameters" validate:"required,dive"`
+	PieceDuration *float64                         `json:"piece_duration" validate:"required,gte=0"`
+	Notes         []ParameterNoteRequest           `json:"notes" validate:"required,dive"`
+	Mix           [][]float64                      `json:"mix" validate:"required,dive,required,dive,gte=0,lte=1"`
+	MixSampleRate *float64                         `json:"mix_sample_rate" validate:"required,gt=0"`
+	Parameters    map[string]AudioParameterRequest `json:"parameters" validate:"required,dive"`
 }
 
 func (r AudioInputRequest) ToAudioInput() AudioInput {
@@ -358,16 +364,19 @@ func (r AudioInputRequest) ToAudioInput() AudioInput {
 }
 
 type AudioParameter struct {
-	Values []float64 `json:"values"`
+	Values     []float64 `json:"values"`
+	SampleRate float64   `json:"sample_rate"`
 }
 
 type AudioParameterRequest struct {
-	Values []float64 `json:"values" validate:"dive"`
+	Values     []float64 `json:"values" validate:"dive"`
+	SampleRate *float64  `json:"sample_rate" validate:"required,gt=0"`
 }
 
 func (r AudioParameterRequest) ToAudioParameter() AudioParameter {
 	return AudioParameter{
-		Values: r.Values,
+		Values:     r.Values,
+		SampleRate: *r.SampleRate,
 	}
 }
 

@@ -25,6 +25,7 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include <dsinfer/Api/Inferences/Pitch/1/PitchApiL1.h>
 
@@ -142,8 +143,15 @@ namespace dssp {
 			g_pitchInferenceTasks.erase(getDiffSingerPitchInferenceTask(task));
 		}
 
-		DSSP_DiffSingerManagedDoubleArray newDiffSingerManagedDoubleArray(std::vector<double> values) {
-			auto result = std::make_unique<DiffSingerManagedDoubleArray>(std::move(values));
+		DSSP_DiffSingerParameters newDiffSingerPitchParameters(
+			std::vector<double> values,
+			double interval
+		) {
+			auto result = std::make_unique<DiffSingerParameters>(1);
+			auto &parameter = result->at(0);
+			parameter.tag = DSSP_DiffSingerParameterTag_Pitch;
+			parameter.values = std::make_unique<DiffSingerManagedDoubleArray>(std::move(values));
+			parameter.interval = interval;
 			return result.release();
 		}
 
@@ -232,7 +240,7 @@ DSSP_DiffSingerPitchInference DSSP_GetDiffSingerPitchInferenceTaskInference(
 	return const_cast<srt::InferenceSpec *>(inference->spec());
 }
 
-DSSP_DiffSingerManagedDoubleArray DSSP_RunDiffSingerPitchInferenceTask(
+DSSP_DiffSingerParameters DSSP_RunDiffSingerPitchInferenceTask(
 	DSSP_DiffSingerPitchInferenceTask task,
 	double duration,
 	DSSP_DiffSingerWords words,
@@ -274,7 +282,10 @@ DSSP_DiffSingerManagedDoubleArray DSSP_RunDiffSingerPitchInferenceTask(
 		return nullptr;
 	}
 
-	auto result = dssp::newDiffSingerManagedDoubleArray(std::move(pitchResult->pitch));
+	auto result = dssp::newDiffSingerPitchParameters(
+		std::move(pitchResult->pitch),
+		pitchResult->interval
+	);
 	dssp::g_logger.info("DiffSinger pitch inference task completed");
 	return result;
 }

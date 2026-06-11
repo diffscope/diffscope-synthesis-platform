@@ -303,7 +303,7 @@ DSSP_DiffSingerPitchInference DSSP_GetDiffSingerPitchInferenceTaskInference(DSSP
 
 // Nullable: indicates error
 // Reentrant but not thread-safe
-DSSP_DiffSingerManagedDoubleArray DSSP_RunDiffSingerPitchInferenceTask(DSSP_DiffSingerPitchInferenceTask task, double duration, DSSP_DiffSingerWords words, DSSP_DiffSingerParameters parameters, DSSP_DiffSingerDynamicMixedSpeakers dynamicMixedSpeakers, int64_t steps);
+DSSP_DiffSingerParameters DSSP_RunDiffSingerPitchInferenceTask(DSSP_DiffSingerPitchInferenceTask task, double duration, DSSP_DiffSingerWords words, DSSP_DiffSingerParameters parameters, DSSP_DiffSingerDynamicMixedSpeakers dynamicMixedSpeakers, int64_t steps);
 
 // thread-safe
 void DSSP_TerminateDiffSingerPitchInferenceTask(DSSP_DiffSingerPitchInferenceTask task);

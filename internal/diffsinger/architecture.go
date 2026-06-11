@@ -54,8 +54,8 @@ type archExtraRequest struct {
 }
 
 const (
-	defaultArchExtraSteps int64   = 0
-	defaultArchExtraDepth float32 = 0
+	defaultArchExtraSteps int64   = 20
+	defaultArchExtraDepth float32 = 1
 )
 
 var extraValidator = validator.New()
