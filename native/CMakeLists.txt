@@ -21,6 +21,7 @@ find_package(PhonemeConverter CONFIG REQUIRED)
 find_package(synthrt CONFIG REQUIRED)
 set(SYNTHRT_PLUGINS_DIR "$<TARGET_FILE_DIR:synthrt::synthrt>/../lib/plugins")
 find_package(dsinfer CONFIG REQUIRED)
+find_package(FLAC CONFIG REQUIRED)
 
 qm_configure_target(dssp_native
 	LINKS_PRIVATE
@@ -28,6 +29,7 @@ qm_configure_target(dssp_native
 		PhonemeConverter::PhonemeConverter
 		synthrt::synthrt
 		dsinfer::dsinfer
+		FLAC::FLAC++
 		$<$<PLATFORM_ID:Windows>:dxgi.lib>
 	INCLUDE_PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
 )

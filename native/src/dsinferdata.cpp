@@ -200,6 +200,18 @@ namespace dssp {
 		return static_cast<DiffSingerWords *>(words);
 	}
 
+	DiffSingerAcousticFeature *getDiffSingerAcousticFeature(DSSP_DiffSingerAcousticFeature feature) {
+		return static_cast<DiffSingerAcousticFeature *>(feature);
+	}
+
+	DiffSingerAudioData *getDiffSingerAudioData(DSSP_DiffSingerAudioData audioData) {
+		return static_cast<DiffSingerAudioData *>(audioData);
+	}
+
+	DiffSingerRawData *getDiffSingerRawData(DSSP_DiffSingerRawData rawData) {
+		return static_cast<DiffSingerRawData *>(rawData);
+	}
+
 	ds::Api::Common::L1::InputWordInfo toDsinferInputWordInfo(const DiffSingerWord &word) {
 		if (!word.phonemes) {
 			throw std::invalid_argument("word.phonemes");
@@ -668,4 +680,26 @@ void DSSP_SetDiffSingerParameterRetakeLength(
 ) {
 	auto *result = dssp::getDiffSingerParameters(parameters);
 	result->at(index).retakeLength = retakeLength;
+}
+
+void DSSP_DeleteDiffSingerAcousticFeature(DSSP_DiffSingerAcousticFeature feature) {
+	delete dssp::getDiffSingerAcousticFeature(feature);
+}
+
+void DSSP_DeleteDiffSingerAudioData(DSSP_DiffSingerAudioData audioData) {
+	delete dssp::getDiffSingerAudioData(audioData);
+}
+
+void DSSP_FreeDiffSingerRawData(DSSP_DiffSingerRawData rawData) {
+	delete dssp::getDiffSingerRawData(rawData);
+}
+
+size_t DSSP_GetDiffSingerRawDataSize(DSSP_DiffSingerRawData rawData) {
+	const auto *result = dssp::getDiffSingerRawData(rawData);
+	return result->size();
+}
+
+const uint8_t *DSSP_GetDiffSingerRawDataBytes(DSSP_DiffSingerRawData rawData) {
+	const auto *result = dssp::getDiffSingerRawData(rawData);
+	return result->data();
 }

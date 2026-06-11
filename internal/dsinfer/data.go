@@ -53,6 +53,14 @@ type Parameters struct {
 	handle uintptr
 }
 
+type AcousticFeature struct {
+	handle uintptr
+}
+
+type AudioData struct {
+	handle uintptr
+}
+
 type ParameterTag int
 
 const (
@@ -289,6 +297,20 @@ func (p *Parameters) Handle() uintptr {
 	return p.handle
 }
 
+func (f *AcousticFeature) Handle() uintptr {
+	if f == nil {
+		return 0
+	}
+	return f.handle
+}
+
+func (a *AudioData) Handle() uintptr {
+	if a == nil {
+		return 0
+	}
+	return a.handle
+}
+
 func (a *ManagedDoubleArray) Values() []float64 {
 	return doubleArrayValues(a.Handle())
 }
@@ -466,6 +488,20 @@ func (p *Parameters) Close() {
 	}
 }
 
+func (f *AcousticFeature) Close() {
+	handle := f.consume()
+	if handle != 0 {
+		native.DSSP_DeleteDiffSingerAcousticFeature(handle)
+	}
+}
+
+func (a *AudioData) Close() {
+	handle := a.consume()
+	if handle != 0 {
+		native.DSSP_DeleteDiffSingerAudioData(handle)
+	}
+}
+
 func (a *ManagedDoubleArray) consume() uintptr {
 	if a == nil {
 		return 0
@@ -526,6 +562,24 @@ func (p *Parameters) consume() uintptr {
 	}
 	handle := p.handle
 	p.handle = 0
+	return handle
+}
+
+func (f *AcousticFeature) consume() uintptr {
+	if f == nil {
+		return 0
+	}
+	handle := f.handle
+	f.handle = 0
+	return handle
+}
+
+func (a *AudioData) consume() uintptr {
+	if a == nil {
+		return 0
+	}
+	handle := a.handle
+	a.handle = 0
 	return handle
 }
 

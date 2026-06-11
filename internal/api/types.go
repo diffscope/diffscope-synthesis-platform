@@ -265,7 +265,7 @@ type ParameterInputPhonemeRequest struct {
 	Token    *string  `json:"token" validate:"required"`
 	Onset    *bool    `json:"onset" validate:"required"`
 	Language *string  `json:"language" validate:"required"`
-	Start    *float64 `json:"start" validate:"required,gte=0"`
+	Start    *float64 `json:"start" validate:"required"`
 }
 
 func (r ParameterInputPhonemeRequest) ToParameterInputPhoneme() ParameterInputPhoneme {
@@ -323,6 +323,61 @@ type ParameterOutput struct {
 type ParameterEvent struct {
 	State  State
 	Output ParameterOutput
+	Err    error
+}
+
+type AudioInput struct {
+	PieceDuration float64                   `json:"piece_duration"`
+	Notes         []Note                    `json:"notes"`
+	Parameters    map[string]AudioParameter `json:"parameters"`
+}
+
+type AudioInputRequest struct {
+	PieceDuration       *float64                         `json:"piece_duration" validate:"required,gte=0"`
+	Notes               []ParameterNoteRequest           `json:"notes" validate:"required,dive"`
+	Mix                 [][]float64                      `json:"mix" validate:"required,dive,required,dive,gte=0,lte=1"`
+	MixSampleRate       *float64                         `json:"mix_sample_rate" validate:"required,gt=0"`
+	ParameterSampleRate *float64                         `json:"parameter_sample_rate" validate:"required,gt=0"`
+	Parameters          map[string]AudioParameterRequest `json:"parameters" validate:"required,dive"`
+}
+
+func (r AudioInputRequest) ToAudioInput() AudioInput {
+	notes := make([]Note, 0, len(r.Notes))
+	for _, note := range r.Notes {
+		notes = append(notes, note.ToNote())
+	}
+	parameters := make(map[string]AudioParameter, len(r.Parameters))
+	for name, parameter := range r.Parameters {
+		parameters[name] = parameter.ToAudioParameter()
+	}
+	return AudioInput{
+		PieceDuration: *r.PieceDuration,
+		Notes:         notes,
+		Parameters:    parameters,
+	}
+}
+
+type AudioParameter struct {
+	Values []float64 `json:"values"`
+}
+
+type AudioParameterRequest struct {
+	Values []float64 `json:"values" validate:"dive"`
+}
+
+func (r AudioParameterRequest) ToAudioParameter() AudioParameter {
+	return AudioParameter{
+		Values: r.Values,
+	}
+}
+
+type AudioOutput struct {
+	AudioURL string `json:"audio_url"`
+}
+
+type AudioEvent struct {
+	State  State
+	Output AudioOutput
 	Err    error
 }
 

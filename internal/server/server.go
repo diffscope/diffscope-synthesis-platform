@@ -66,6 +66,7 @@ func StartRouter() error {
 	router.POST("/api/synth/phoneme", PostPhoneme)
 	router.POST("/api/synth/duration", PostDuration)
 	router.POST("/api/synth/parameter", PostParameter)
+	router.POST("/api/synth/audio", PostAudio)
 
 	host := viper.GetString("host")
 	port := viper.GetInt("port")

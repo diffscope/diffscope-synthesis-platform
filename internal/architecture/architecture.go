@@ -59,4 +59,15 @@ type Architecture interface {
 		notes []api.Note,
 		parameters map[string]api.Parameter,
 	) (<-chan api.ParameterEvent, error)
+	Audio(
+		ctx context.Context,
+		archExtra json.RawMessage,
+		singers []api.Singer,
+		mix [][]float64,
+		mixSampleRate float64,
+		parameterSampleRate float64,
+		pieceDuration float64,
+		notes []api.Note,
+		parameters map[string]api.AudioParameter,
+	) (<-chan api.AudioEvent, error)
 }

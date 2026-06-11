@@ -24,6 +24,13 @@ import (
 	"github.com/spf13/viper"
 )
 
+type AudioFormat string
+
+const (
+	AudioFormatWAV  AudioFormat = "wav"
+	AudioFormatFLAC AudioFormat = "flac"
+)
+
 func init() {
 	viper.SetDefault("diffsinger.phoneme_cleanup_timeout_msec", 600000)
 	viper.SetDefault("diffsinger.phoneme_cleanup_interval_msec", 60000)
@@ -31,6 +38,7 @@ func init() {
 	viper.SetDefault("diffsinger.phoneme_custom_worker_timeout_msec", 5000)
 	viper.SetDefault("diffsinger.inference_cleanup_timeout_msec", 600000)
 	viper.SetDefault("diffsinger.inference_cleanup_interval_msec", 60000)
+	viper.SetDefault("diffsinger.audio_format", "wav")
 }
 
 func getPhonemeCleanupTimeout() time.Duration {
@@ -55,4 +63,16 @@ func getInferenceCleanupTimeout() time.Duration {
 
 func getInferenceCleanupInterval() time.Duration {
 	return time.Duration(viper.GetInt("diffsinger.inference_cleanup_interval_msec")) * time.Millisecond
+}
+
+func getAudioFormat() AudioFormat {
+	format := viper.GetString("diffsinger.audio_format")
+	switch format {
+	case "wav":
+		return AudioFormatWAV
+	case "flac":
+		return AudioFormatFLAC
+	default:
+		return AudioFormatWAV
+	}
 }

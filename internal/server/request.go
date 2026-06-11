@@ -36,6 +36,7 @@ func newRequestValidator() *validator.Validate {
 	validate := validator.New()
 	validate.RegisterStructValidation(validateDurationRequest, durationRequest{})
 	validate.RegisterStructValidation(validateParameterRequest, parameterRequest{})
+	validate.RegisterStructValidation(validateAudioRequest, audioRequest{})
 	return validate
 }
 
@@ -104,6 +105,27 @@ func validateParameterRequest(sl validator.StructLevel) {
 	}
 
 	validateMix(sl, request.Context.Singers, request.Input.Mix, "parameter_mix")
+}
+
+func validateAudioRequest(sl validator.StructLevel) {
+	var request audioRequest
+	switch current := sl.Current().Interface().(type) {
+	case audioRequest:
+		request = current
+	case *audioRequest:
+		if current == nil {
+			return
+		}
+		request = *current
+	default:
+		return
+	}
+
+	if request.Context == nil || request.Input == nil || request.Context.Singers == nil || request.Input.Mix == nil {
+		return
+	}
+
+	validateMix(sl, request.Context.Singers, request.Input.Mix, "audio_mix")
 }
 
 func validateMix(sl validator.StructLevel, singers []api.SingerRequest, mixes [][]float64, tag string) {

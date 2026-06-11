@@ -21,11 +21,13 @@
 
 #include "native.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include <dsinfer/Api/Inferences/Common/1/CommonApiL1.h>
+#include <dsinfer/Core/Tensor.h>
 
 namespace dssp {
 
@@ -80,6 +82,18 @@ namespace dssp {
 
 	using DiffSingerWords = std::vector<DiffSingerWord>;
 
+	struct DiffSingerAcousticFeature {
+		srt::NO<ds::ITensor> mel;
+		srt::NO<ds::ITensor> f0;
+	};
+
+	struct DiffSingerAudioData {
+		std::vector<uint8_t> audioData;
+		int sampleRate = 0;
+	};
+
+	using DiffSingerRawData = std::vector<uint8_t>;
+
 	DiffSingerManagedDoubleArray *getDiffSingerManagedDoubleArray(DSSP_DiffSingerManagedDoubleArray array);
 	DiffSingerPhonemes *getDiffSingerPhonemes(DSSP_DiffSingerPhonemes phonemes);
 	DiffSingerNotes *getDiffSingerNotes(DSSP_DiffSingerNotes notes);
@@ -89,6 +103,9 @@ namespace dssp {
 	);
 	DiffSingerParameters *getDiffSingerParameters(DSSP_DiffSingerParameters parameters);
 	DiffSingerWords *getDiffSingerWords(DSSP_DiffSingerWords words);
+	DiffSingerAcousticFeature *getDiffSingerAcousticFeature(DSSP_DiffSingerAcousticFeature feature);
+	DiffSingerAudioData *getDiffSingerAudioData(DSSP_DiffSingerAudioData audioData);
+	DiffSingerRawData *getDiffSingerRawData(DSSP_DiffSingerRawData rawData);
 
 	ds::Api::Common::L1::InputWordInfo toDsinferInputWordInfo(const DiffSingerWord &word);
 	std::vector<ds::Api::Common::L1::InputWordInfo> toDsinferInputWordInfos(const DiffSingerWords &words);

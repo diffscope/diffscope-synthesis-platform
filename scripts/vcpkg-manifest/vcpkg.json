@@ -4,7 +4,8 @@
         "qmsetup",
         "language-manager",
         "synthrt",
-        "phoneme-converter"
+        "phoneme-converter",
+        "libflac"
     ],
     "features": {
         "cuda11": {

@@ -21,13 +21,12 @@ package api
 type ErrorCode string
 
 const (
-	ErrorCodeInternalError         ErrorCode = "INTERNAL_ERROR"
-	ErrorCodeUnknownArch           ErrorCode = "UNKNOWN_ARCH"
-	ErrorCodeSingerNotExist        ErrorCode = "SINGER_NOT_EXIST"
-	ErrorCodeSingerConfigInvalid   ErrorCode = "SINGER_CONFIG_INVALID"
-	ErrorCodeInvalidParameterSet   ErrorCode = "INVALID_PARAMETER_SET"
-	ErrorCodeInvalidParameterValue ErrorCode = "INVALID_PARAMETER_VALUE"
-	ErrorCodeSingersUnmixable      ErrorCode = "SINGERS_UNMIXABLE"
+	ErrorCodeInternalError       ErrorCode = "INTERNAL_ERROR"
+	ErrorCodeUnknownArch         ErrorCode = "UNKNOWN_ARCH"
+	ErrorCodeSingerNotExist      ErrorCode = "SINGER_NOT_EXIST"
+	ErrorCodeSingerConfigInvalid ErrorCode = "SINGER_CONFIG_INVALID"
+	ErrorCodeInvalidParameter    ErrorCode = "INVALID_PARAMETER"
+	ErrorCodeSingersUnmixable    ErrorCode = "SINGERS_UNMIXABLE"
 )
 
 type Error struct {

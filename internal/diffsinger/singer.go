@@ -86,6 +86,8 @@ type SingerMetadata struct {
 	durationInference *dsinfer.DurationInference
 	pitchInference    *dsinfer.PitchInference
 	varianceInference *dsinfer.VarianceInference
+	acousticInference *dsinfer.AcousticInference
+	vocoderInference  *dsinfer.VocoderInference
 }
 
 type SingerLanguage struct {
@@ -337,6 +339,18 @@ func LoadSingerMetadata(packagesDir string) (map[SingerIdentifier]SingerMetadata
 			continue
 		}
 		item.varianceInference = varianceInference
+		acousticInference, err := dsinfer.GetAcousticInference(srtSinger)
+		if err != nil {
+			logLoadError(id.PackageID, id.Version.String(), id.SingerID, singerConfigPath, fmt.Errorf("get acoustic inference: %w", err))
+			continue
+		}
+		item.acousticInference = acousticInference
+		vocoderInference, err := dsinfer.GetVocoderInference(srtSinger)
+		if err != nil {
+			logLoadError(id.PackageID, id.Version.String(), id.SingerID, singerConfigPath, fmt.Errorf("get vocoder inference: %w", err))
+			continue
+		}
+		item.vocoderInference = vocoderInference
 
 		metadata[id] = item
 		logger.Info(

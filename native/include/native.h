@@ -250,6 +250,20 @@ void DSSP_SetDiffSingerParameterRetakeStart(DSSP_DiffSingerParameters parameters
 double DSSP_GetDiffSingerParameterRetakeLength(DSSP_DiffSingerParameters parameters, size_t index);
 void DSSP_SetDiffSingerParameterRetakeLength(DSSP_DiffSingerParameters parameters, size_t index, double retakeLength);
 
+typedef void *DSSP_DiffSingerAcousticFeature;
+
+void DSSP_DeleteDiffSingerAcousticFeature(DSSP_DiffSingerAcousticFeature feature);
+
+typedef void *DSSP_DiffSingerAudioData;
+
+void DSSP_DeleteDiffSingerAudioData(DSSP_DiffSingerAudioData audioData);
+
+typedef void *DSSP_DiffSingerRawData;
+
+void DSSP_FreeDiffSingerRawData(DSSP_DiffSingerRawData rawData);
+size_t DSSP_GetDiffSingerRawDataSize(DSSP_DiffSingerRawData rawData);
+const uint8_t *DSSP_GetDiffSingerRawDataBytes(DSSP_DiffSingerRawData rawData);
+
 /* ========================================================================
  * dsinfer (inference)
  * ====================================================================== */
@@ -313,6 +327,52 @@ DSSP_DiffSingerParameters DSSP_RunDiffSingerVarianceInferenceTask(DSSP_DiffSinge
 
 // thread-safe
 void DSSP_TerminateDiffSingerVarianceInferenceTask(DSSP_DiffSingerVarianceInferenceTask task);
+
+typedef void *DSSP_DiffSingerAcousticInference;
+
+DSSP_DiffSingerAcousticInference DSSP_GetDiffSingerAcousticInference(DSSP_SRTSinger singer);
+const char *DSSP_GetDiffSingerAcousticInferenceSpeakerID(DSSP_SRTSinger singer, const char *singer_speaker_id);
+
+typedef void *DSSP_DiffSingerAcousticInferenceTask;
+
+DSSP_DiffSingerAcousticInferenceTask DSSP_CreateDiffSingerAcousticInferenceTask(DSSP_DiffSingerAcousticInference inference);
+void DSSP_DeleteDiffSingerAcousticInferenceTask(DSSP_DiffSingerAcousticInferenceTask task);
+bool DSSP_IsDiffSingerAcousticInferenceTaskError(DSSP_DiffSingerAcousticInferenceTask task);
+const char *DSSP_GetDiffSingerAcousticInferenceErrorMessage(DSSP_DiffSingerAcousticInferenceTask task);
+DSSP_DiffSingerAcousticInference DSSP_GetDiffSingerAcousticInferenceTaskInference(DSSP_DiffSingerAcousticInferenceTask task);
+
+// Nullable: indicates error
+// Reentrant but not thread-safe
+DSSP_DiffSingerAcousticFeature DSSP_RunDiffSingerAcousticInferenceTask(DSSP_DiffSingerAcousticInferenceTask task, double duration, DSSP_DiffSingerWords words, DSSP_DiffSingerParameters parameters, DSSP_DiffSingerDynamicMixedSpeakers dynamicMixedSpeakers, float depth, int64_t steps);
+
+// thread-safe
+void DSSP_TerminateDiffSingerAcousticInferenceTask(DSSP_DiffSingerAcousticInferenceTask task);
+
+typedef void *DSSP_DiffSingerVocoderInference;
+
+DSSP_DiffSingerVocoderInference DSSP_GetDiffSingerVocoderInference(DSSP_SRTSinger singer);
+
+typedef void *DSSP_DiffSingerVocoderInferenceTask;
+
+DSSP_DiffSingerVocoderInferenceTask DSSP_CreateDiffSingerVocoderInferenceTask(DSSP_DiffSingerVocoderInference inference);
+void DSSP_DeleteDiffSingerVocoderInferenceTask(DSSP_DiffSingerVocoderInferenceTask task);
+bool DSSP_IsDiffSingerVocoderInferenceTaskError(DSSP_DiffSingerVocoderInferenceTask task);
+const char *DSSP_GetDiffSingerVocoderInferenceErrorMessage(DSSP_DiffSingerVocoderInferenceTask task);
+DSSP_DiffSingerVocoderInference DSSP_GetDiffSingerVocoderInferenceTaskInference(DSSP_DiffSingerVocoderInferenceTask task);
+
+// Nullable: indicates error
+// Reentrant but not thread-safe
+DSSP_DiffSingerAudioData DSSP_RunDiffSingerVocoderInferenceTask(DSSP_DiffSingerVocoderInferenceTask task, DSSP_DiffSingerAcousticFeature feature);
+
+// thread-safe
+void DSSP_TerminateDiffSingerVocoderInferenceTask(DSSP_DiffSingerVocoderInferenceTask task);
+
+/* ========================================================================
+ * dsinfer (audio encoder)
+ * ====================================================================== */
+
+DSSP_DiffSingerRawData DSSP_EncodeWAV(DSSP_DiffSingerAudioData audioData);
+DSSP_DiffSingerRawData DSSP_EncodeFLAC(DSSP_DiffSingerAudioData audioData);
 
 #ifdef __cplusplus
 }

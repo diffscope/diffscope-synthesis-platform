@@ -120,6 +120,8 @@ func init() {
 		phonemeconversion.SetLuaRunnerCount(getPhonemeCustomWorkerCount())
 		configurePhonemeResourceManagers()
 		configureDurationResourceManager()
+		configureParameterResourceManager()
+		configureAudioResourceManagers()
 		return nil
 	})
 }
