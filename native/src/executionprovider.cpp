@@ -214,7 +214,7 @@ namespace dssp {
 
 
 DSSP_Device DSSP_GetDefaultDevice(void) {
-	return const_cast<dssp::DeviceInfo *>(dssp::getDefaultDevice());
+	return dssp::getDefaultDevice();
 }
 
 DSSP_ExecutionProvider DSSP_GetDeviceExecutionProvider(DSSP_Device device) {
@@ -256,5 +256,5 @@ DSSP_Device DSSP_GetExecutionProviderDevice(DSSP_ExecutionProvider execution_pro
 	if (executionProvider == nullptr || index >= executionProvider->devices.size()) {
 		return nullptr;
 	}
-	return const_cast<dssp::DeviceInfo *>(&executionProvider->devices[index]);
+	return &executionProvider->devices[index];
 }

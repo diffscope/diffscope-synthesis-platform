@@ -17,13 +17,11 @@
  **************************************************************************/
 
 #include "dsinferdata.h"
+#include "dsinferinferencehelper.h"
 #include "logger.h"
-#include "synthrt.h"
 
 #include <memory>
-#include <mutex>
 #include <string>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -39,109 +37,15 @@ namespace dssp {
 
 	namespace {
 		const dssp::Logger g_logger("native.dsinferpitch");
+		inline constexpr char g_displayName[] = "pitch";
 
-		struct PitchInferenceTaskError {
-			std::string errorMessage;
-		};
-
-		std::mutex g_pitchInferenceTaskMutex;
-		std::unordered_map<srt::InferenceSpec *, srt::NO<srt::InferenceImportOptions>>
-			g_pitchInferenceImportOptions;
-		std::unordered_map<srt::Inference *, srt::NO<srt::Inference>> g_pitchInferenceTasks;
-		std::unordered_map<PitchInferenceTaskError *, std::unique_ptr<PitchInferenceTaskError>>
-			g_pitchInferenceTaskErrors;
-
-		srt::InferenceSpec *getDiffSingerPitchInference(DSSP_DiffSingerPitchInference inference) {
-			return static_cast<srt::InferenceSpec *>(inference);
-		}
-
-		srt::Inference *getDiffSingerPitchInferenceTask(DSSP_DiffSingerPitchInferenceTask task) {
-			return static_cast<srt::Inference *>(task);
-		}
-
-		PitchInferenceTaskError *getDiffSingerPitchInferenceTaskError(
-			DSSP_DiffSingerPitchInferenceTask task
-		) {
-			return static_cast<PitchInferenceTaskError *>(task);
-		}
-
-		srt::SingerImport findPitchImport(const srt::SingerSpec *singer) {
-			for (const auto &import : singer->imports()) {
-				if (import.inference()->className() == Pit::API_CLASS) {
-					return import;
-				}
-			}
-			return {};
-		}
-
-		DSSP_DiffSingerPitchInferenceTask newPitchInferenceTaskError(std::string errorMessage) {
-			auto error = std::make_unique<PitchInferenceTaskError>();
-			error->errorMessage = std::move(errorMessage);
-			auto *handle = error.get();
-
-			std::lock_guard lock(g_pitchInferenceTaskMutex);
-			g_pitchInferenceTaskErrors.emplace(handle, std::move(error));
-			return handle;
-		}
-
-		void setPitchInferenceImportOptions(
-			srt::InferenceSpec *inference,
-			srt::NO<srt::InferenceImportOptions> importOptions
-		) {
-			std::lock_guard lock(g_pitchInferenceTaskMutex);
-			g_pitchInferenceImportOptions[inference] = std::move(importOptions);
-		}
-
-		srt::NO<srt::InferenceImportOptions> findPitchInferenceImportOptions(srt::InferenceSpec *inference) {
-			std::lock_guard lock(g_pitchInferenceTaskMutex);
-			if (const auto it = g_pitchInferenceImportOptions.find(inference);
-				it != g_pitchInferenceImportOptions.end()) {
-				return it->second;
-			}
-			return {};
-		}
-
-		bool isPitchInferenceTaskError(DSSP_DiffSingerPitchInferenceTask task) {
-			std::lock_guard lock(g_pitchInferenceTaskMutex);
-			return g_pitchInferenceTaskErrors.contains(getDiffSingerPitchInferenceTaskError(task));
-		}
-
-		const std::string &pitchInferenceTaskErrorMessage(DSSP_DiffSingerPitchInferenceTask task) {
-			static const std::string empty;
-
-			std::lock_guard lock(g_pitchInferenceTaskMutex);
-			const auto it = g_pitchInferenceTaskErrors.find(getDiffSingerPitchInferenceTaskError(task));
-			if (it == g_pitchInferenceTaskErrors.end()) {
-				return empty;
-			}
-			return it->second->errorMessage;
-		}
-
-		void addPitchInferenceTask(srt::NO<srt::Inference> inference) {
-			std::lock_guard lock(g_pitchInferenceTaskMutex);
-			g_pitchInferenceTasks.emplace(inference.get(), std::move(inference));
-		}
-
-		srt::NO<srt::Inference> findPitchInferenceTask(srt::Inference *task) {
-			std::lock_guard lock(g_pitchInferenceTaskMutex);
-			if (const auto it = g_pitchInferenceTasks.find(task); it != g_pitchInferenceTasks.end()) {
-				return it->second;
-			}
-			return {};
-		}
-
-		void deletePitchInferenceTask(DSSP_DiffSingerPitchInferenceTask task) {
-			std::lock_guard lock(g_pitchInferenceTaskMutex);
-			if (const auto it = g_pitchInferenceTaskErrors.find(
-					getDiffSingerPitchInferenceTaskError(task)
-				);
-				it != g_pitchInferenceTaskErrors.end()) {
-				g_pitchInferenceTaskErrors.erase(it);
-				return;
-			}
-
-			g_pitchInferenceTasks.erase(getDiffSingerPitchInferenceTask(task));
-		}
+		using Helper = DSInferInferenceHelper<
+			&g_logger,
+			Pit::API_CLASS,
+			g_displayName,
+			Pit::PitchImportOptions,
+			Pit::PitchRuntimeOptions,
+			Pit::PitchInitArgs>;
 
 		DSSP_DiffSingerParameters newDiffSingerPitchParameters(
 			std::vector<double> values,
@@ -160,84 +64,35 @@ namespace dssp {
 } // namespace dssp
 
 DSSP_DiffSingerPitchInference DSSP_GetDiffSingerPitchInference(DSSP_SRTSinger singer) {
-	const auto *singerSpec = dssp::getSRTSinger(singer);
-	const auto import = dssp::findPitchImport(singerSpec);
-	if (import.isNull()) {
-		return nullptr;
-	}
-	auto *inference = import.inference();
-	dssp::setPitchInferenceImportOptions(inference, import.options());
-	return inference;
+	return dssp::Helper::getInference(singer);
 }
 
 const char *DSSP_GetDiffSingerPitchInferenceSpeakerID(DSSP_SRTSinger singer, const char *singer_speaker_id) {
-	const auto *singerSpec = dssp::getSRTSinger(singer);
-	const auto import = dssp::findPitchImport(singerSpec);
-	if (import.isNull()) {
-		return singer_speaker_id;
-	}
-
-	const auto options = import.options().as<dssp::Pit::PitchImportOptions>();
-	if (!options) {
-		return singer_speaker_id;
-	}
-	const auto it = options->speakerMapping.find(singer_speaker_id);
-	return it == options->speakerMapping.end() ? singer_speaker_id : it->second.c_str();
+	return dssp::Helper::speakerID(singer, singer_speaker_id);
 }
 
 DSSP_DiffSingerPitchInferenceTask DSSP_CreateDiffSingerPitchInferenceTask(
 	DSSP_DiffSingerPitchInference inference
 ) {
-	auto *spec = dssp::getDiffSingerPitchInference(inference);
-	if (spec == nullptr) {
-		return dssp::newPitchInferenceTaskError("pitch inference is nullptr");
-	}
-
-	srt::NO<srt::Inference> task;
-	auto importOptions = dssp::findPitchInferenceImportOptions(spec);
-	if (!importOptions) {
-		importOptions = srt::NO<dssp::Pit::PitchImportOptions>::create();
-	}
-	if (auto exp = spec->createInference(
-			importOptions,
-			srt::NO<dssp::Pit::PitchRuntimeOptions>::create()
-		);
-		!exp) {
-		return dssp::newPitchInferenceTaskError(exp.error().message());
-	} else {
-		task = exp.take();
-	}
-
-	if (auto exp = task->initialize(srt::NO<dssp::Pit::PitchInitArgs>::create()); !exp) {
-		return dssp::newPitchInferenceTaskError(exp.error().message());
-	}
-
-	auto *handle = task.get();
-	dssp::addPitchInferenceTask(std::move(task));
-	dssp::g_logger.info("DiffSinger pitch inference task created");
-	return handle;
+	return dssp::Helper::createTask(inference);
 }
 
 void DSSP_DeleteDiffSingerPitchInferenceTask(DSSP_DiffSingerPitchInferenceTask task) {
-	dssp::deletePitchInferenceTask(task);
+	dssp::Helper::deleteTask(task);
 }
 
 bool DSSP_IsDiffSingerPitchInferenceTaskError(DSSP_DiffSingerPitchInferenceTask task) {
-	return dssp::isPitchInferenceTaskError(task);
+	return dssp::Helper::isTaskError(task);
 }
 
 const char *DSSP_GetDiffSingerPitchInferenceErrorMessage(DSSP_DiffSingerPitchInferenceTask task) {
-	return dssp::pitchInferenceTaskErrorMessage(task).c_str();
+	return dssp::Helper::taskErrorMessage(task).c_str();
 }
 
 DSSP_DiffSingerPitchInference DSSP_GetDiffSingerPitchInferenceTaskInference(
 	DSSP_DiffSingerPitchInferenceTask task
 ) {
-	if (dssp::isPitchInferenceTaskError(task)) {
-		return nullptr;
-	}
-	const auto *inference = dssp::getDiffSingerPitchInferenceTask(task);
-	return const_cast<srt::InferenceSpec *>(inference->spec());
+	return dssp::Helper::taskInference(task);
 }
 
 DSSP_DiffSingerParameters DSSP_RunDiffSingerPitchInferenceTask(
@@ -248,9 +103,6 @@ DSSP_DiffSingerParameters DSSP_RunDiffSingerPitchInferenceTask(
 	DSSP_DiffSingerDynamicMixedSpeakers dynamicMixedSpeakers,
 	int64_t steps
 ) {
-	auto *inference = dssp::getDiffSingerPitchInferenceTask(task);
-	dssp::g_logger.info("DiffSinger pitch inference task started");
-
 	auto input = srt::NO<dssp::Pit::PitchStartInput>::create();
 	input->duration = duration;
 	input->words = dssp::toDsinferInputWordInfos(*dssp::getDiffSingerWords(words));
@@ -260,45 +112,18 @@ DSSP_DiffSingerParameters DSSP_RunDiffSingerPitchInferenceTask(
 	);
 	input->steps = steps;
 
-	srt::NO<srt::TaskResult> taskResult;
-	if (auto exp = inference->start(input); !exp) {
-		dssp::g_logger.error(
-			std::string("Failed to run DiffSinger pitch inference task: ") + exp.error().message()
-		);
+	auto taskResult = dssp::Helper::runTask(task, input);
+	if (!taskResult) {
 		return nullptr;
-	} else {
-		taskResult = exp.take();
 	}
-
 	auto pitchResult = taskResult.as<dssp::Pit::PitchResult>();
-	if (inference->state() == srt::ITask::Failed) {
-		dssp::g_logger.error(
-			std::string("Failed to run DiffSinger pitch inference task: ") + pitchResult->error.message()
-		);
-		return nullptr;
-	}
-	if (pitchResult->pitch.empty()) {
-		dssp::g_logger.error("Failed to run DiffSinger pitch inference task: result is empty");
-		return nullptr;
-	}
-
 	auto result = dssp::newDiffSingerPitchParameters(
 		std::move(pitchResult->pitch),
 		pitchResult->interval
 	);
-	dssp::g_logger.info("DiffSinger pitch inference task completed");
 	return result;
 }
 
 void DSSP_TerminateDiffSingerPitchInferenceTask(DSSP_DiffSingerPitchInferenceTask task) {
-	if (dssp::isPitchInferenceTaskError(task)) {
-		return;
-	}
-
-	auto inference = dssp::findPitchInferenceTask(dssp::getDiffSingerPitchInferenceTask(task));
-	if (!inference) {
-		return;
-	}
-	inference->stop();
-	dssp::g_logger.info("DiffSinger pitch inference task terminated manually");
+	dssp::Helper::terminateTask(task);
 }

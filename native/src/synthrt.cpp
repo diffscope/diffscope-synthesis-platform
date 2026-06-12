@@ -165,7 +165,7 @@ namespace dssp {
 			g_synthRTErrorMessage.clear();
 		}
 
-		std::filesystem::path getDsInferPluginsRootDirectory() {
+		std::filesystem::path getDSInferPluginsRootDirectory() {
 			return stdc::system::application_directory().parent_path() / _TSTR("lib/plugins/dsinfer");
 		}
 
@@ -249,7 +249,7 @@ bool DSSP_InitializeSynthRT(const char *package_path, DSSP_Device device) {
 
 	auto su = std::make_unique<srt::SynthUnit>();
 
-	const auto defaultPluginDir = dssp::getDsInferPluginsRootDirectory();
+	const auto defaultPluginDir = dssp::getDSInferPluginsRootDirectory();
 	su->addPluginPath("org.openvpi.SingerProvider", defaultPluginDir / _TSTR("singerproviders"));
 	su->addPluginPath("org.openvpi.InferenceDriver", defaultPluginDir / _TSTR("inferencedrivers"));
 	su->addPluginPath("org.openvpi.InferenceInterpreter", defaultPluginDir / _TSTR("inferenceinterpreters"));

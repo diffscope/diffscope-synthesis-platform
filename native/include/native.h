@@ -46,7 +46,7 @@ typedef enum DSSP_ExecutionProvider {
 	DSSP_ExecutionProvider_CoreML,
 } DSSP_ExecutionProvider;
 
-typedef void *DSSP_Device;
+typedef const void *DSSP_Device;
 
 DSSP_Device DSSP_GetDefaultDevice(void);
 DSSP_ExecutionProvider DSSP_GetDeviceExecutionProvider(DSSP_Device device);

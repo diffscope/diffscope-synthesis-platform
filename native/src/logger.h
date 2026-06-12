@@ -21,7 +21,10 @@
 
 #include "native.h"
 
+#include <format>
 #include <string>
+#include <string_view>
+#include <utility>
 
 namespace dssp {
 
@@ -33,6 +36,26 @@ namespace dssp {
 		void info(const std::string &message) const;
 		void warn(const std::string &message) const;
 		void error(const std::string &message) const;
+
+		template<typename... Args>
+		void debugF(const std::string_view format, Args&&... args) const {
+			debug(std::vformat(format, std::make_format_args(std::forward<Args>(args)...)));
+		}
+
+		template<typename... Args>
+		void infoF(const std::string_view format, Args&&... args) const {
+			info(std::vformat(format, std::make_format_args(std::forward<Args>(args)...)));
+		}
+
+		template<typename... Args>
+		void warnF(const std::string_view format, Args&&... args) const {
+			warn(std::vformat(format, std::make_format_args(std::forward<Args>(args)...)));
+		}
+
+		template<typename... Args>
+		void errorF(const std::string_view format, Args&&... args) const {
+			error(std::vformat(format, std::make_format_args(std::forward<Args>(args)...)));
+		}
 
 	private:
 		void log(int level, const std::string &message) const;
