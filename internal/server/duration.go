@@ -58,7 +58,7 @@ func PostDuration(c *gin.Context) {
 	var request durationRequest
 	if err := decodeRequest(c, &request); err != nil {
 		durationLogger.Error("Invalid duration request", slog.Any("error", err))
-		writeBadRequest(c)
+		writeBadRequest(c, err)
 		return
 	}
 
@@ -220,10 +220,9 @@ func writeDurationStream(c *gin.Context, events <-chan api.DurationEvent, envTag
 }
 
 func writeDurationStreamError(encoder *json.Encoder, writer gin.ResponseWriter, err error) {
-	var apiError *api.Error
+	apiError := toAPIError(err)
 	if !errors.As(err, &apiError) {
 		durationLogger.Error("Internal duration stream error occurred", slog.Any("error", err))
-		apiError = api.NewError(api.ErrorCodeInternalError, "")
 	}
 	_ = encoder.Encode(errorResponse{
 		State:   api.StateError,

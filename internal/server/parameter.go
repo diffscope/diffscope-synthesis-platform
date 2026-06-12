@@ -57,7 +57,7 @@ func PostParameter(c *gin.Context) {
 	var request parameterRequest
 	if err := decodeRequest(c, &request); err != nil {
 		parameterLogger.Error("Invalid parameter request", slog.Any("error", err))
-		writeBadRequest(c)
+		writeBadRequest(c, err)
 		return
 	}
 
@@ -230,10 +230,9 @@ func writeParameterStream(c *gin.Context, events <-chan api.ParameterEvent, envT
 }
 
 func writeParameterStreamError(encoder *json.Encoder, writer gin.ResponseWriter, err error) {
-	var apiError *api.Error
+	apiError := toAPIError(err)
 	if !errors.As(err, &apiError) {
 		parameterLogger.Error("Internal parameter stream error occurred", slog.Any("error", err))
-		apiError = api.NewError(api.ErrorCodeInternalError, "")
 	}
 	_ = encoder.Encode(errorResponse{
 		State:   api.StateError,

@@ -165,19 +165,6 @@ func prepareDurationSingers(singers []api.Singer) (*dsinfer.DurationInference, [
 	return durationInference, speakerIDs, nil
 }
 
-func validateSingerExtraSpeaker(metadata SingerMetadata, speaker string) error {
-	if len(metadata.Speakers) == 0 {
-		if speaker != "" {
-			return api.NewError(api.ErrorCodeInternalError, "singer does not define speakers")
-		}
-		return nil
-	}
-	if _, ok := metadata.Speakers[speaker]; !ok {
-		return api.NewError(api.ErrorCodeInternalError, fmt.Sprintf("speaker %q does not exist", speaker))
-	}
-	return nil
-}
-
 func convertDurationNotes(notes []api.DurationNote) []builder.Note {
 	result := make([]builder.Note, 0, len(notes))
 	for _, note := range notes {

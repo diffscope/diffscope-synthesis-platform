@@ -19,18 +19,23 @@
 package diffsinger
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 
+	"diffscope-synthesis-platform/internal/api"
 	"diffscope-synthesis-platform/internal/dsinfer"
 	"diffscope-synthesis-platform/internal/synthrt"
+	"diffscope-synthesis-platform/internal/utils"
 
 	"github.com/diffscope/diffscope-package-manager/packagedatabase"
 	"github.com/diffscope/diffscope-package-manager/packagedatabase/model"
@@ -70,6 +75,7 @@ type SingerMetadata struct {
 	PackageID        string
 	Version          packageinfo.PackageVersion
 	PackageDirectory string
+	PackageHash      string
 	SingerConfigPath string
 
 	Avatar     *packageinfo.MultilingualText
@@ -108,6 +114,16 @@ var (
 	singerMetadataMu sync.RWMutex
 	singerMetadata   = make(map[SingerIdentifier]SingerMetadata)
 )
+
+func (id SingerIdentifier) String() string {
+	ref := packageinfo.PackageReference{
+		Type:      packageinfo.PackageReferenceTypeSinger,
+		PackageID: id.PackageID,
+		Version:   &id.Version,
+		SingerID:  id.SingerID,
+	}
+	return ref.String()
+}
 
 func GetSinger(id SingerIdentifier) (SingerMetadata, bool) {
 	singerMetadataMu.RLock()
@@ -169,6 +185,7 @@ func LoadSingerMetadata(packagesDir string) (map[SingerIdentifier]SingerMetadata
 
 	var rows []model.Singer
 	if err := db.
+		Preload("Package").
 		Where("class = ?", diffSingerClass).
 		Order("package_id ASC, package_version ASC, id ASC").
 		Find(&rows).Error; err != nil {
@@ -304,7 +321,7 @@ func LoadSingerMetadata(packagesDir string) (map[SingerIdentifier]SingerMetadata
 			continue
 		}
 
-		item, err := readSingerMetadata(row.PackageID, version, packageDir, singerConfigPath, row.ID, texts, demoAudio)
+		item, err := readSingerMetadata(row.PackageID, version, packageDir, row.Package.Hash, singerConfigPath, row.ID, texts, demoAudio)
 		if err != nil {
 			logLoadError(id.PackageID, id.Version.String(), id.SingerID, singerConfigPath, err)
 			continue
@@ -418,6 +435,7 @@ func readSingerMetadata(
 	packageID string,
 	version packageinfo.PackageVersion,
 	packageDir string,
+	packageHash string,
 	singerConfigPath string,
 	singerID string,
 	texts singerTexts,
@@ -448,6 +466,7 @@ func readSingerMetadata(
 		PackageID:        packageID,
 		Version:          version,
 		PackageDirectory: packageDir,
+		PackageHash:      packageHash,
 		SingerConfigPath: singerConfigPath,
 		Avatar:           texts.Avatar,
 		Background:       texts.Background,
@@ -713,4 +732,188 @@ func cloneMultilingualTextValue(text packageinfo.MultilingualText) packageinfo.M
 		cloned.Texts[key] = value
 	}
 	return cloned
+}
+
+type singerInfoExtra struct {
+	Speakers []string `json:"speakers"`
+}
+
+type singerInfoDefaultExtra struct {
+	Speaker string `json:"speaker"`
+}
+
+func (Architecture) GetSingerList(displayLanguage string) ([]api.SingerInfo, error) {
+	metadata := SingerMetadataMap()
+	ids := make([]SingerIdentifier, 0, len(metadata))
+	for id := range metadata {
+		ids = append(ids, id)
+	}
+	sort.Slice(ids, func(i, j int) bool {
+		return ids[i].String() < ids[j].String()
+	})
+
+	items := make([]api.SingerInfo, 0, len(ids))
+	for _, id := range ids {
+		item, err := newSingerInfo(id, metadata[id], displayLanguage)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, nil
+}
+
+func (Architecture) GetSinger(id string, displayLanguage string) (api.SingerInfo, error) {
+	singerID, metadata, err := getSingerByAPIID(id)
+	if err != nil {
+		return api.SingerInfo{}, err
+	}
+	return newSingerInfo(singerID, metadata, displayLanguage)
+}
+
+func (Architecture) GetSingerAvatar(id string, displayLanguage string) (string, error) {
+	_, metadata, err := getSingerByAPIID(id)
+	if err != nil {
+		return "", err
+	}
+	if metadata.Avatar == nil {
+		return "", nil
+	}
+	return multilingualFileDataURL(*metadata.Avatar, displayLanguage)
+}
+
+func (Architecture) GetSingerBackground(id string, displayLanguage string) (string, error) {
+	_, metadata, err := getSingerByAPIID(id)
+	if err != nil {
+		return "", err
+	}
+	if metadata.Background == nil {
+		return "", nil
+	}
+	return multilingualFileDataURL(*metadata.Background, displayLanguage)
+}
+
+func (Architecture) GetSingerDemoAudioList(id string, displayLanguage string) ([]api.SingerDemoAudio, error) {
+	_, metadata, err := getSingerByAPIID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]api.SingerDemoAudio, 0, len(metadata.DemoAudio))
+	for _, item := range metadata.DemoAudio {
+		audioURL, err := multilingualFileDataURL(item.Path, displayLanguage)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, api.SingerDemoAudio{
+			Name:     localizeMultilingualText(item.Name, displayLanguage),
+			AudioURL: audioURL,
+		})
+	}
+	return items, nil
+}
+
+func newSingerInfo(id SingerIdentifier, metadata SingerMetadata, displayLanguage string) (api.SingerInfo, error) {
+	languages := sortedLanguageIDs(metadata.Languages)
+	speakers := sortedSpeakerIDs(metadata.Speakers)
+	defaultSpeaker := ""
+	if len(speakers) > 0 {
+		defaultSpeaker = speakers[0]
+	}
+
+	extra, err := json.Marshal(singerInfoExtra{Speakers: speakers})
+	if err != nil {
+		return api.SingerInfo{}, api.NewError(api.ErrorCodeInternalError, fmt.Sprintf("marshal singer extra: %v", err))
+	}
+	defaultExtra, err := json.Marshal(singerInfoDefaultExtra{Speaker: defaultSpeaker})
+	if err != nil {
+		return api.SingerInfo{}, api.NewError(api.ErrorCodeInternalError, fmt.Sprintf("marshal singer default extra: %v", err))
+	}
+
+	return api.SingerInfo{
+		ID:              id.String(),
+		Name:            localizeMultilingualText(metadata.Name, displayLanguage),
+		Languages:       languages,
+		DefaultLanguage: metadata.DefaultLanguage,
+		Extra:           extra,
+		DefaultExtra:    defaultExtra,
+	}, nil
+}
+
+func getSingerByAPIID(id string) (SingerIdentifier, SingerMetadata, error) {
+	ref, err := packageinfo.ParsePackageReference(id)
+	if err != nil || ref.Type != packageinfo.PackageReferenceTypeSinger || ref.PackageID == "" || ref.Version == nil || ref.SingerID == "" {
+		return SingerIdentifier{}, SingerMetadata{}, api.NewError(api.ErrorCodeSingerNotExist, "")
+	}
+	singerID := SingerIdentifier{
+		PackageID: ref.PackageID,
+		Version:   *ref.Version,
+		SingerID:  ref.SingerID,
+	}
+	metadata, ok := GetSinger(singerID)
+	if !ok {
+		return SingerIdentifier{}, SingerMetadata{}, api.NewError(api.ErrorCodeSingerNotExist, "")
+	}
+	return singerID, metadata, nil
+}
+
+func sortedLanguageIDs(items map[string]SingerLanguage) []string {
+	ids := make([]string, 0, len(items))
+	for id := range items {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	return ids
+}
+
+func sortedSpeakerIDs(items map[string]SingerSpeaker) []string {
+	ids := make([]string, 0, len(items))
+	for id := range items {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	return ids
+}
+
+func localizeMultilingualText(text packageinfo.MultilingualText, displayLanguage string) string {
+	if value, ok := selectMultilingualText(text, displayLanguage); ok {
+		return value
+	}
+	return text.Default
+}
+
+func selectMultilingualText(text packageinfo.MultilingualText, displayLanguage string) (string, bool) {
+	if displayLanguage == "" || len(text.Texts) == 0 {
+		return "", false
+	}
+	if value, ok := text.Texts[displayLanguage]; ok {
+		return value, true
+	}
+
+	available := make([]string, 0, len(text.Texts))
+	for language := range text.Texts {
+		available = append(available, language)
+	}
+	sort.Strings(available)
+	if matched, ok := utils.BestMatch(displayLanguage, available); ok {
+		return text.Texts[matched], true
+	}
+	return "", false
+}
+
+func multilingualFileDataURL(text packageinfo.MultilingualText, displayLanguage string) (string, error) {
+	filePath := localizeMultilingualText(text, displayLanguage)
+	if filePath == "" {
+		return "", nil
+	}
+	return fileDataURL(filePath)
+}
+
+func fileDataURL(filePath string) (string, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", api.NewError(api.ErrorCodeInternalError, fmt.Sprintf("read resource file: %v", err))
+	}
+	mimeType := http.DetectContentType(data)
+	return "data:" + mimeType + ";base64," + base64.StdEncoding.EncodeToString(data), nil
 }

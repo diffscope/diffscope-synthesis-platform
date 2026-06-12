@@ -26,7 +26,13 @@ import (
 )
 
 type Architecture interface {
+	GetMetadata(displayLanguage string) (api.ArchitectureMetadata, error)
 	GetEnvTag(archExtra json.RawMessage, singers []api.Singer) string
+	GetSingerList(displayLanguage string) ([]api.SingerInfo, error)
+	GetSinger(id string, displayLanguage string) (api.SingerInfo, error)
+	GetSingerAvatar(id string, displayLanguage string) (string, error)
+	GetSingerBackground(id string, displayLanguage string) (string, error)
+	GetSingerDemoAudioList(id string, displayLanguage string) ([]api.SingerDemoAudio, error)
 	Pronunciation(
 		ctx context.Context,
 		archExtra json.RawMessage,

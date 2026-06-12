@@ -52,7 +52,7 @@ func PostAudio(c *gin.Context) {
 	var request audioRequest
 	if err := decodeRequest(c, &request); err != nil {
 		audioLogger.Error("Invalid audio request", slog.Any("error", err))
-		writeBadRequest(c)
+		writeBadRequest(c, err)
 		return
 	}
 
@@ -208,10 +208,9 @@ func writeAudioStream(c *gin.Context, events <-chan api.AudioEvent, envTag strin
 }
 
 func writeAudioStreamError(encoder *json.Encoder, writer gin.ResponseWriter, err error) {
-	var apiError *api.Error
+	apiError := toAPIError(err)
 	if !errors.As(err, &apiError) {
 		audioLogger.Error("Internal audio stream error occurred", slog.Any("error", err))
-		apiError = api.NewError(api.ErrorCodeInternalError, "")
 	}
 	_ = encoder.Encode(errorResponse{
 		State:   api.StateError,

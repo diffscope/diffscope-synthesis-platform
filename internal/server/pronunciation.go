@@ -44,7 +44,7 @@ type pronunciationContext struct {
 }
 
 type pronunciationInput struct {
-	Lyrics []api.LyricRequest `json:"lyrics" validate:"required,dive"`
+	Notes []api.LyricRequest `json:"notes" validate:"required,dive"`
 }
 
 type pronunciationResponse struct {
@@ -54,7 +54,7 @@ type pronunciationResponse struct {
 }
 
 type pronunciationOutput struct {
-	Pronunciations []api.Pronunciation `json:"pronunciations"`
+	Notes []api.Pronunciation `json:"notes"`
 }
 
 type errorResponse struct {
@@ -67,7 +67,7 @@ func PostPronunciation(c *gin.Context) {
 	var request pronunciationRequest
 	if err := decodeRequest(c, &request); err != nil {
 		logger.Error("Invalid pronunciation request", slog.Any("error", err))
-		writeBadRequest(c)
+		writeBadRequest(c, err)
 		return
 	}
 
@@ -90,7 +90,7 @@ func PostPronunciation(c *gin.Context) {
 		c.Request.Context(),
 		archExtra,
 		singer,
-		pronunciationLyrics(request.Input.Lyrics),
+		pronunciationLyrics(request.Input.Notes),
 	)
 	if err != nil {
 		if c.Request.Context().Err() != nil {
@@ -106,7 +106,7 @@ func PostPronunciation(c *gin.Context) {
 	c.JSON(http.StatusOK, pronunciationResponse{
 		State: api.StateComplete,
 		Output: pronunciationOutput{
-			Pronunciations: pronunciations,
+			Notes: pronunciations,
 		},
 		EnvTag: envTag,
 	})
@@ -124,14 +124,25 @@ func writeError(c *gin.Context, err error) {
 	if c.Request.Context().Err() != nil {
 		return
 	}
-	var apiError *api.Error
+	apiError := toAPIError(err)
 	if !errors.As(err, &apiError) {
 		logger.Error("Internal error occurred", slog.Any("error", err))
-		apiError = api.NewError(api.ErrorCodeInternalError, "")
 	}
 	c.JSON(http.StatusUnprocessableEntity, errorResponse{
 		State:   api.StateError,
 		Code:    apiError.Code,
 		Message: apiError.Message,
 	})
+}
+
+func toAPIError(err error) *api.Error {
+	var apiError *api.Error
+	if errors.As(err, &apiError) {
+		return apiError
+	}
+	message := ""
+	if err != nil {
+		message = err.Error()
+	}
+	return api.NewError(api.ErrorCodeInternalError, message)
 }

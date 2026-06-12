@@ -20,7 +20,7 @@ package diffsinger
 
 import (
 	"context"
-	"crypto/sha256"
+	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -553,7 +553,7 @@ func hashFile(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	hash := sha256.Sum256(data)
+	hash := sha512.Sum512(data)
 	return hex.EncodeToString(hash[:]), nil
 }
 

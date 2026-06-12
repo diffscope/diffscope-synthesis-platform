@@ -58,11 +58,15 @@ func decodeJSON(c *gin.Context, value any) error {
 	return nil
 }
 
-func writeBadRequest(c *gin.Context) {
+func writeBadRequest(c *gin.Context, err error) {
 	if c.Request.Context().Err() != nil {
 		return
 	}
-	c.JSON(http.StatusBadRequest, gin.H{"message": ""})
+	message := ""
+	if err != nil {
+		message = err.Error()
+	}
+	c.JSON(http.StatusBadRequest, gin.H{"message": message})
 }
 
 func validateDurationRequest(sl validator.StructLevel) {

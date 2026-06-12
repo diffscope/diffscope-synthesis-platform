@@ -19,18 +19,33 @@
 package server
 
 import (
+	"errors"
+	"log/slog"
+	"net/http"
 	"strings"
 	"sync"
 
 	"diffscope-synthesis-platform/internal/api"
 	"diffscope-synthesis-platform/internal/architecture"
+
+	"github.com/gin-gonic/gin"
 )
 
 var (
+	architectureLogger       = slog.With("component", "server.architecture")
 	architecturesMu          sync.RWMutex
 	registeredArchitectures  = make(map[string]architecture.Architecture)
 	registeredArchitectureDB = architecture.NewRegistry(registeredArchitectures)
 )
+
+type architectureMetadataResponse struct {
+	ID                string                                       `json:"id"`
+	Name              string                                       `json:"name"`
+	PronunciationMode api.ArchitectureSynthesisMode                `json:"pronunciation_mode"`
+	PhonemeMode       api.ArchitectureSynthesisMode                `json:"phoneme_mode"`
+	Parameters        map[string]api.ArchitectureParameterMetadata `json:"parameters"`
+	AudioDependencies []string                                     `json:"audio_dependencies"`
+}
 
 func RegisterArchitecture(name string, implementation architecture.Architecture) {
 	if name == "" {
@@ -44,6 +59,40 @@ func RegisterArchitecture(name string, implementation architecture.Architecture)
 	defer architecturesMu.Unlock()
 	registeredArchitectures[name] = implementation
 	registeredArchitectureDB = architecture.NewRegistry(registeredArchitectures)
+}
+
+func GetArchitectureList(c *gin.Context) {
+	displayLanguage := c.Query("display_language")
+	response := make([]architectureMetadataResponse, 0)
+	for _, name := range registeredArchitectureNames() {
+		arch, ok := getArchitecture(name)
+		if !ok {
+			writeArchitectureError(c, newUnknownArchError())
+			return
+		}
+		metadata, err := arch.GetMetadata(displayLanguage)
+		if err != nil {
+			writeArchitectureError(c, err)
+			return
+		}
+		response = append(response, newArchitectureMetadataResponse(name, metadata))
+	}
+	c.JSON(http.StatusOK, response)
+}
+
+func GetArchitecture(c *gin.Context) {
+	name := c.Param("arch_id")
+	arch, ok := getArchitecture(name)
+	if !ok {
+		writeArchitectureError(c, newUnknownArchError())
+		return
+	}
+	metadata, err := arch.GetMetadata(c.Query("display_language"))
+	if err != nil {
+		writeArchitectureError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, newArchitectureMetadataResponse(name, metadata))
 }
 
 func getArchitecture(name string) (architecture.Architecture, bool) {
@@ -60,4 +109,35 @@ func registeredArchitectureNames() []string {
 
 func newUnknownArchError() error {
 	return api.NewError(api.ErrorCodeUnknownArch, "supported architectures: "+strings.Join(registeredArchitectureNames(), ", "))
+}
+
+func newArchitectureMetadataResponse(id string, metadata api.ArchitectureMetadata) architectureMetadataResponse {
+	return architectureMetadataResponse{
+		ID:                id,
+		Name:              metadata.Name,
+		PronunciationMode: metadata.PronunciationMode,
+		PhonemeMode:       metadata.PhonemeMode,
+		Parameters:        metadata.Parameters,
+		AudioDependencies: metadata.AudioDependencies,
+	}
+}
+
+func writeArchitectureError(c *gin.Context, err error) {
+	if c.Request.Context().Err() != nil {
+		return
+	}
+	apiError := toAPIError(err)
+	if !errors.As(err, &apiError) {
+		architectureLogger.Error("Internal error occurred", slog.Any("error", err))
+	}
+	status := http.StatusUnprocessableEntity
+	switch apiError.Code {
+	case api.ErrorCodeUnknownArch:
+		status = http.StatusNotFound
+	}
+	c.JSON(status, errorResponse{
+		State:   api.StateError,
+		Code:    apiError.Code,
+		Message: apiError.Message,
+	})
 }

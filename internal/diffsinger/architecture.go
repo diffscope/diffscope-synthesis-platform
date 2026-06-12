@@ -60,6 +60,63 @@ const (
 
 var extraValidator = validator.New()
 
+func (Architecture) GetMetadata(displayLanguage string) (api.ArchitectureMetadata, error) {
+	return api.ArchitectureMetadata{
+		Name:              "DiffSinger",
+		PronunciationMode: api.ArchitectureSynthesisModeFull,
+		PhonemeMode:       api.ArchitectureSynthesisModeFull,
+		Parameters: map[string]api.ArchitectureParameterMetadata{
+			parameterIDExpressiveness: {
+				Type: api.ArchitectureParameterTypeDirect,
+			},
+			parameterIDPitch: {
+				Type:      api.ArchitectureParameterTypeIndirect,
+				DependsOn: []string{parameterIDExpressiveness},
+			},
+			parameterIDBreathiness: {
+				Type:      api.ArchitectureParameterTypeIndirect,
+				DependsOn: []string{parameterIDPitch},
+			},
+			parameterIDTension: {
+				Type:      api.ArchitectureParameterTypeIndirect,
+				DependsOn: []string{parameterIDPitch},
+			},
+			parameterIDVoicing: {
+				Type:      api.ArchitectureParameterTypeIndirect,
+				DependsOn: []string{parameterIDPitch},
+			},
+			parameterIDEnergy: {
+				Type:      api.ArchitectureParameterTypeIndirect,
+				DependsOn: []string{parameterIDPitch},
+			},
+			parameterIDMouthOpening: {
+				Type:      api.ArchitectureParameterTypeIndirect,
+				DependsOn: []string{parameterIDPitch},
+			},
+			parameterIDGender: {
+				Type: api.ArchitectureParameterTypeDirect,
+			},
+			parameterIDVelocity: {
+				Type: api.ArchitectureParameterTypeDirect,
+			},
+			parameterIDToneShift: {
+				Type: api.ArchitectureParameterTypeDirect,
+			},
+		},
+		AudioDependencies: []string{
+			parameterIDPitch,
+			parameterIDBreathiness,
+			parameterIDTension,
+			parameterIDVoicing,
+			parameterIDEnergy,
+			parameterIDMouthOpening,
+			parameterIDGender,
+			parameterIDVelocity,
+			parameterIDToneShift,
+		},
+	}, nil
+}
+
 func (r archExtraRequest) ToArchExtra() ArchExtra {
 	extra := ArchExtra{
 		Steps: defaultArchExtraSteps,
@@ -81,10 +138,10 @@ func (r singerExtraRequest) ToSingerExtra() SingerExtra {
 func parseArchExtra(data json.RawMessage) (ArchExtra, error) {
 	var request archExtraRequest
 	if err := json.Unmarshal(data, &request); err != nil {
-		return ArchExtra{}, api.NewError(api.ErrorCodeInternalError, fmt.Sprintf("parse arch extra: %v", err))
+		return ArchExtra{}, api.NewError(api.ErrorCodeSingerConfigInvalid, fmt.Sprintf("parse arch extra: %v", err))
 	}
 	if err := extraValidator.Struct(request); err != nil {
-		return ArchExtra{}, api.NewError(api.ErrorCodeInternalError, fmt.Sprintf("validate arch extra: %v", err))
+		return ArchExtra{}, api.NewError(api.ErrorCodeSingerConfigInvalid, fmt.Sprintf("validate arch extra: %v", err))
 	}
 	return request.ToArchExtra(), nil
 }
@@ -92,12 +149,25 @@ func parseArchExtra(data json.RawMessage) (ArchExtra, error) {
 func parseSingerExtra(data json.RawMessage) (SingerExtra, error) {
 	var request singerExtraRequest
 	if err := json.Unmarshal(data, &request); err != nil {
-		return SingerExtra{}, api.NewError(api.ErrorCodeInternalError, fmt.Sprintf("parse singer extra: %v", err))
+		return SingerExtra{}, api.NewError(api.ErrorCodeSingerConfigInvalid, fmt.Sprintf("parse singer extra: %v", err))
 	}
 	if err := extraValidator.Struct(request); err != nil {
-		return SingerExtra{}, api.NewError(api.ErrorCodeInternalError, fmt.Sprintf("validate singer extra: %v", err))
+		return SingerExtra{}, api.NewError(api.ErrorCodeSingerConfigInvalid, fmt.Sprintf("validate singer extra: %v", err))
 	}
 	return request.ToSingerExtra(), nil
+}
+
+func validateSingerExtraSpeaker(metadata SingerMetadata, speaker string) error {
+	if len(metadata.Speakers) == 0 {
+		if speaker != "" {
+			return api.NewError(api.ErrorCodeInternalError, "singer does not define speakers")
+		}
+		return nil
+	}
+	if _, ok := metadata.Speakers[speaker]; !ok {
+		return api.NewError(api.ErrorCodeSingerConfigInvalid, fmt.Sprintf("speaker %q does not exist", speaker))
+	}
+	return nil
 }
 
 func init() {

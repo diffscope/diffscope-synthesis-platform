@@ -1,0 +1,2237 @@
+{
+  "openapi": "3.2.0",
+  "info": {
+    "title": "DiffScope Synthesis Platform API",
+    "version": "0.0.0",
+    "description": "DSSP HTTP API surface represented by this service. A server implementation can support a subset of the broader DSSP API."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:13711",
+      "description": "Default local server URL. The actual host and port are configured by the service."
+    }
+  ],
+  "tags": [
+    {
+      "name": "Application",
+      "description": "Application metadata endpoints."
+    },
+    {
+      "name": "Architecture and Singer",
+      "description": "Architecture and singer metadata endpoints."
+    },
+    {
+      "name": "Synthesis",
+      "description": "Synthesis service endpoints."
+    }
+  ],
+  "paths": {
+    "/api/info": {
+      "get": {
+        "tags": [
+          "Application"
+        ],
+        "operationId": "getApplicationInfo",
+        "summary": "Get application information",
+        "description": "Returns service application metadata.",
+        "responses": {
+          "200": {
+            "description": "Application information.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationInfoResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/arch": {
+      "get": {
+        "tags": [
+          "Architecture and Singer"
+        ],
+        "operationId": "getArchitectureList",
+        "summary": "List architectures",
+        "description": "Returns metadata for every registered architecture.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DisplayLanguage"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ArchitectureList"
+          },
+          "404": {
+            "$ref": "#/components/responses/ArchitectureNotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ArchitectureOperationError"
+          }
+        }
+      }
+    },
+    "/api/arch/{arch_id}": {
+      "get": {
+        "tags": [
+          "Architecture and Singer"
+        ],
+        "operationId": "getArchitecture",
+        "summary": "Get architecture metadata",
+        "description": "Returns metadata for one registered architecture.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ArchID"
+          },
+          {
+            "$ref": "#/components/parameters/DisplayLanguage"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Architecture"
+          },
+          "404": {
+            "$ref": "#/components/responses/ArchitectureNotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ArchitectureOperationError"
+          }
+        }
+      }
+    },
+    "/api/singer": {
+      "get": {
+        "tags": [
+          "Architecture and Singer"
+        ],
+        "operationId": "getSingerList",
+        "summary": "List all singers",
+        "description": "Returns singers from every registered architecture.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DisplayLanguage"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/SingerList"
+          },
+          "404": {
+            "$ref": "#/components/responses/SingerNotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/SingerOperationError"
+          }
+        }
+      }
+    },
+    "/api/arch/{arch_id}/singer": {
+      "get": {
+        "tags": [
+          "Architecture and Singer"
+        ],
+        "operationId": "getArchSingerList",
+        "summary": "List singers for an architecture",
+        "description": "Returns singers from one registered architecture.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ArchID"
+          },
+          {
+            "$ref": "#/components/parameters/DisplayLanguage"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ArchSingerList"
+          },
+          "404": {
+            "$ref": "#/components/responses/SingerNotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/SingerOperationError"
+          }
+        }
+      }
+    },
+    "/api/arch/{arch_id}/singer/{singer_id}": {
+      "get": {
+        "tags": [
+          "Architecture and Singer"
+        ],
+        "operationId": "getArchSinger",
+        "summary": "Get singer metadata",
+        "description": "Returns one singer from one registered architecture.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ArchID"
+          },
+          {
+            "$ref": "#/components/parameters/SingerID"
+          },
+          {
+            "$ref": "#/components/parameters/DisplayLanguage"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Singer"
+          },
+          "404": {
+            "$ref": "#/components/responses/SingerNotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/SingerOperationError"
+          }
+        }
+      }
+    },
+    "/api/arch/{arch_id}/singer/{singer_id}/avatar": {
+      "get": {
+        "tags": [
+          "Architecture and Singer"
+        ],
+        "operationId": "getArchSingerAvatar",
+        "summary": "Get singer avatar URL",
+        "description": "Returns the avatar URL for one singer.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ArchID"
+          },
+          {
+            "$ref": "#/components/parameters/SingerID"
+          },
+          {
+            "$ref": "#/components/parameters/DisplayLanguage"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/SingerAvatar"
+          },
+          "404": {
+            "$ref": "#/components/responses/SingerNotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/SingerOperationError"
+          }
+        }
+      }
+    },
+    "/api/arch/{arch_id}/singer/{singer_id}/background": {
+      "get": {
+        "tags": [
+          "Architecture and Singer"
+        ],
+        "operationId": "getArchSingerBackground",
+        "summary": "Get singer background URL",
+        "description": "Returns the background image URL for one singer.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ArchID"
+          },
+          {
+            "$ref": "#/components/parameters/SingerID"
+          },
+          {
+            "$ref": "#/components/parameters/DisplayLanguage"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/SingerBackground"
+          },
+          "404": {
+            "$ref": "#/components/responses/SingerNotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/SingerOperationError"
+          }
+        }
+      }
+    },
+    "/api/arch/{arch_id}/singer/{singer_id}/demo_audio": {
+      "get": {
+        "tags": [
+          "Architecture and Singer"
+        ],
+        "operationId": "getArchSingerDemoAudioList",
+        "summary": "List singer demo audio",
+        "description": "Returns demo audio entries for one singer.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ArchID"
+          },
+          {
+            "$ref": "#/components/parameters/SingerID"
+          },
+          {
+            "$ref": "#/components/parameters/DisplayLanguage"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/SingerDemoAudioList"
+          },
+          "404": {
+            "$ref": "#/components/responses/SingerNotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/SingerOperationError"
+          }
+        }
+      }
+    },
+    "/api/synth/pronunciation": {
+      "post": {
+        "tags": [
+          "Synthesis"
+        ],
+        "operationId": "postSynthPronunciation",
+        "summary": "Generate pronunciations",
+        "description": "Generates pronunciation candidates for lyric input. Set stream to true to request newline-delimited JSON events.",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/PronunciationRequest"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/PronunciationComplete"
+          },
+          "204": {
+            "$ref": "#/components/responses/EnvTagMatched"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "422": {
+            "$ref": "#/components/responses/PronunciationOperationError"
+          }
+        }
+      }
+    },
+    "/api/synth/phoneme": {
+      "post": {
+        "tags": [
+          "Synthesis"
+        ],
+        "operationId": "postSynthPhoneme",
+        "summary": "Generate phonemes",
+        "description": "Generates phoneme notes from pronunciation notes. Set stream to true to request newline-delimited JSON events.",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/PhonemeRequest"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/PhonemeComplete"
+          },
+          "204": {
+            "$ref": "#/components/responses/EnvTagMatched"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "422": {
+            "$ref": "#/components/responses/PhonemeOperationError"
+          }
+        }
+      }
+    },
+    "/api/synth/duration": {
+      "post": {
+        "tags": [
+          "Synthesis"
+        ],
+        "operationId": "postSynthDuration",
+        "summary": "Generate phoneme timing",
+        "description": "Generates phoneme timing for duration notes. Set stream to true to receive newline-delimited JSON events.",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/DurationRequest"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/DurationResult"
+          },
+          "204": {
+            "$ref": "#/components/responses/EnvTagMatched"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "422": {
+            "$ref": "#/components/responses/DurationOperationError"
+          }
+        }
+      }
+    },
+    "/api/synth/parameter": {
+      "post": {
+        "tags": [
+          "Synthesis"
+        ],
+        "operationId": "postSynthParameter",
+        "summary": "Generate parameter values",
+        "description": "Generates requested parameter values. Set stream to true to receive newline-delimited JSON events.",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/ParameterRequest"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ParameterResult"
+          },
+          "204": {
+            "$ref": "#/components/responses/EnvTagMatched"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "422": {
+            "$ref": "#/components/responses/ParameterOperationError"
+          }
+        }
+      }
+    },
+    "/api/synth/audio": {
+      "post": {
+        "tags": [
+          "Synthesis"
+        ],
+        "operationId": "postSynthAudio",
+        "summary": "Generate audio",
+        "description": "Generates encoded audio as a data URL. Set stream to true to receive newline-delimited JSON events.",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/AudioRequest"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/AudioResult"
+          },
+          "204": {
+            "$ref": "#/components/responses/EnvTagMatched"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "422": {
+            "$ref": "#/components/responses/AudioOperationError"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "ArchID": {
+        "name": "arch_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Architecture identifier."
+      },
+      "SingerID": {
+        "name": "singer_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Singer identifier understood by the selected architecture."
+      },
+      "DisplayLanguage": {
+        "name": "display_language",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Preferred language for display metadata."
+      }
+    },
+    "requestBodies": {
+      "PronunciationRequest": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/PronunciationRequest"
+            }
+          }
+        }
+      },
+      "PhonemeRequest": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/PhonemeRequest"
+            }
+          }
+        }
+      },
+      "DurationRequest": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/DurationRequest"
+            }
+          }
+        }
+      },
+      "ParameterRequest": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ParameterRequest"
+            }
+          }
+        }
+      },
+      "AudioRequest": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/AudioRequest"
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "ArchitectureList": {
+        "description": "Architecture metadata from every registered architecture.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ArchitectureMetadataList"
+            }
+          }
+        }
+      },
+      "Architecture": {
+        "description": "Architecture metadata.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ArchitectureMetadata"
+            }
+          }
+        }
+      },
+      "ArchitectureNotFound": {
+        "description": "The requested architecture does not exist.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ArchitectureNotFoundAPIError"
+            }
+          }
+        }
+      },
+      "ArchitectureOperationError": {
+        "description": "The architecture metadata request was syntactically valid but could not be completed.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ArchitectureOperationAPIError"
+            }
+          }
+        }
+      },
+      "SingerList": {
+        "description": "Singer metadata from every registered architecture.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SingerInfoWithArchList"
+            }
+          }
+        }
+      },
+      "ArchSingerList": {
+        "description": "Singer metadata from one registered architecture.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SingerInfoList"
+            }
+          }
+        }
+      },
+      "Singer": {
+        "description": "Singer metadata.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SingerInfo"
+            }
+          }
+        }
+      },
+      "SingerAvatar": {
+        "description": "Singer avatar URL.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SingerAvatarResponse"
+            }
+          }
+        }
+      },
+      "SingerBackground": {
+        "description": "Singer background URL.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SingerBackgroundResponse"
+            }
+          }
+        }
+      },
+      "SingerDemoAudioList": {
+        "description": "Singer demo audio entries.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SingerDemoAudioList"
+            }
+          }
+        }
+      },
+      "SingerNotFound": {
+        "description": "The requested architecture or singer does not exist.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SingerNotFoundAPIError"
+            }
+          }
+        }
+      },
+      "SingerOperationError": {
+        "description": "The singer metadata request was syntactically valid but could not be completed.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SingerOperationAPIError"
+            }
+          }
+        }
+      },
+      "PronunciationComplete": {
+        "description": "Pronunciation generation result. Non-streaming requests return a complete JSON response. Streaming requests return newline-delimited JSON events; an error event can appear after the HTTP status has already been sent.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/PronunciationResponse"
+            }
+          },
+          "application/x-ndjson": {
+            "itemSchema": {
+              "$ref": "#/components/schemas/PronunciationStreamEvent"
+            }
+          }
+        }
+      },
+      "PhonemeComplete": {
+        "description": "Phoneme generation result. Non-streaming requests return a complete JSON response. Streaming requests return newline-delimited JSON events; an error event can appear after the HTTP status has already been sent.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/PhonemeResponse"
+            }
+          },
+          "application/x-ndjson": {
+            "itemSchema": {
+              "$ref": "#/components/schemas/PhonemeStreamEvent"
+            }
+          }
+        }
+      },
+      "DurationResult": {
+        "description": "Duration generation result. Non-streaming requests return a complete JSON response. Streaming requests return newline-delimited JSON events; an error event can appear after the HTTP status has already been sent.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/DurationResponse"
+            }
+          },
+          "application/x-ndjson": {
+            "itemSchema": {
+              "$ref": "#/components/schemas/DurationStreamEvent"
+            }
+          }
+        }
+      },
+      "ParameterResult": {
+        "description": "Parameter generation result. Non-streaming requests return a complete JSON response. Streaming requests return newline-delimited JSON events; an error event can appear after the HTTP status has already been sent.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ParameterResponse"
+            }
+          },
+          "application/x-ndjson": {
+            "itemSchema": {
+              "$ref": "#/components/schemas/ParameterStreamEvent"
+            }
+          }
+        }
+      },
+      "AudioResult": {
+        "description": "Audio generation result. Non-streaming requests return a complete JSON response. Streaming requests return newline-delimited JSON events; an error event can appear after the HTTP status has already been sent.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/AudioResponse"
+            }
+          },
+          "application/x-ndjson": {
+            "itemSchema": {
+              "$ref": "#/components/schemas/AudioStreamEvent"
+            }
+          }
+        }
+      },
+      "EnvTagMatched": {
+        "description": "The supplied environment tag matches the current environment tag, so no response body is returned."
+      },
+      "BadRequest": {
+        "description": "The request body is not valid JSON, contains more than one JSON value, or fails request validation.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/BadRequestError"
+            }
+          }
+        }
+      },
+      "PronunciationOperationError": {
+        "description": "The pronunciation request was syntactically valid but could not be completed.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/PronunciationAPIError"
+            }
+          }
+        }
+      },
+      "PhonemeOperationError": {
+        "description": "The phoneme request was syntactically valid but could not be completed.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/PhonemeAPIError"
+            }
+          }
+        }
+      },
+      "DurationOperationError": {
+        "description": "The duration request was syntactically valid but could not be completed.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/DurationAPIError"
+            }
+          }
+        }
+      },
+      "ParameterOperationError": {
+        "description": "The parameter request was syntactically valid but could not be completed.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ParameterAPIError"
+            }
+          }
+        }
+      },
+      "AudioOperationError": {
+        "description": "The audio request was syntactically valid but could not be completed.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/AudioAPIError"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ApplicationInfoResponse": {
+        "type": "object",
+        "required": [
+          "dssp"
+        ],
+        "properties": {
+          "dssp": {
+            "$ref": "#/components/schemas/ApplicationInfo"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ApplicationInfo": {
+        "type": "object",
+        "required": [
+          "version"
+        ],
+        "properties": {
+          "version": {
+            "type": "string",
+            "description": "Application semantic version string."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArchitectureMetadataList": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/ArchitectureMetadata"
+        }
+      },
+      "ArchitectureMetadata": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "pronunciation_mode",
+          "phoneme_mode",
+          "parameters",
+          "audio_dependencies"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Architecture identifier."
+          },
+          "name": {
+            "type": "string"
+          },
+          "pronunciation_mode": {
+            "$ref": "#/components/schemas/PronunciationMode"
+          },
+          "phoneme_mode": {
+            "$ref": "#/components/schemas/PhonemeMode"
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ArchitectureParameterMetadata"
+            }
+          },
+          "audio_dependencies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "PronunciationMode": {
+        "type": "string",
+        "enum": [
+          "FULL",
+          "SKIP"
+        ]
+      },
+      "PhonemeMode": {
+        "type": "string",
+        "enum": [
+          "FULL",
+          "TOKEN_ONLY",
+          "SKIP"
+        ]
+      },
+      "ArchitectureParameterMetadata": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/DirectArchitectureParameterMetadata"
+          },
+          {
+            "$ref": "#/components/schemas/IndirectArchitectureParameterMetadata"
+          }
+        ]
+      },
+      "DirectArchitectureParameterMetadata": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "DIRECT"
+          }
+        },
+        "additionalProperties": false
+      },
+      "IndirectArchitectureParameterMetadata": {
+        "type": "object",
+        "required": [
+          "type",
+          "depends_on"
+        ],
+        "properties": {
+          "type": {
+            "const": "INDIRECT"
+          },
+          "depends_on": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArchitectureParameterType": {
+        "type": "string",
+        "enum": [
+          "DIRECT",
+          "INDIRECT"
+        ]
+      },
+      "SingerInfoWithArchList": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/SingerInfoWithArch"
+        }
+      },
+      "SingerInfoList": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/SingerInfo"
+        }
+      },
+      "SingerInfoWithArch": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "arch",
+          "languages",
+          "default_language",
+          "extra",
+          "default_extra"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Singer identifier understood by the selected architecture."
+          },
+          "name": {
+            "type": "string"
+          },
+          "arch": {
+            "type": "string",
+            "description": "Architecture identifier."
+          },
+          "languages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "default_language": {
+            "type": "string"
+          },
+          "extra": {
+            "description": "Architecture-specific singer JSON payload."
+          },
+          "default_extra": {
+            "description": "Default architecture-specific singer JSON payload."
+          }
+        },
+        "additionalProperties": false
+      },
+      "SingerInfo": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "languages",
+          "default_language",
+          "extra",
+          "default_extra"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Singer identifier understood by the selected architecture."
+          },
+          "name": {
+            "type": "string"
+          },
+          "languages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "default_language": {
+            "type": "string"
+          },
+          "extra": {
+            "description": "Architecture-specific singer JSON payload."
+          },
+          "default_extra": {
+            "description": "Default architecture-specific singer JSON payload."
+          }
+        },
+        "additionalProperties": false
+      },
+      "SingerAvatarResponse": {
+        "type": "object",
+        "required": [
+          "avatar_url"
+        ],
+        "properties": {
+          "avatar_url": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SingerBackgroundResponse": {
+        "type": "object",
+        "required": [
+          "background_url"
+        ],
+        "properties": {
+          "background_url": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SingerDemoAudioList": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/SingerDemoAudio"
+        }
+      },
+      "SingerDemoAudio": {
+        "type": "object",
+        "required": [
+          "name",
+          "audio_url"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "audio_url": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PronunciationRequest": {
+        "type": "object",
+        "required": [
+          "context",
+          "input"
+        ],
+        "properties": {
+          "context": {
+            "$ref": "#/components/schemas/SingleSingerContext"
+          },
+          "input": {
+            "$ref": "#/components/schemas/PronunciationInput"
+          },
+          "env_tag": {
+            "$ref": "#/components/schemas/EnvTag"
+          },
+          "stream": {
+            "type": "boolean",
+            "description": "When true, the response uses application/x-ndjson and emits progress events."
+          }
+        },
+        "additionalProperties": false
+      },
+      "PhonemeRequest": {
+        "type": "object",
+        "required": [
+          "context",
+          "input"
+        ],
+        "properties": {
+          "context": {
+            "$ref": "#/components/schemas/SingleSingerContext"
+          },
+          "input": {
+            "$ref": "#/components/schemas/PhonemeInput"
+          },
+          "env_tag": {
+            "$ref": "#/components/schemas/EnvTag"
+          },
+          "stream": {
+            "type": "boolean",
+            "description": "When true, the response uses application/x-ndjson and emits progress events."
+          }
+        },
+        "additionalProperties": false
+      },
+      "DurationRequest": {
+        "type": "object",
+        "required": [
+          "context",
+          "input"
+        ],
+        "properties": {
+          "context": {
+            "$ref": "#/components/schemas/MultiSingerContext"
+          },
+          "input": {
+            "$ref": "#/components/schemas/DurationInput"
+          },
+          "env_tag": {
+            "$ref": "#/components/schemas/EnvTag"
+          },
+          "stream": {
+            "type": "boolean",
+            "description": "When true, the response uses application/x-ndjson and emits progress events."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ParameterRequest": {
+        "type": "object",
+        "required": [
+          "context",
+          "input"
+        ],
+        "properties": {
+          "context": {
+            "$ref": "#/components/schemas/MultiSingerContext"
+          },
+          "input": {
+            "$ref": "#/components/schemas/ParameterInput"
+          },
+          "env_tag": {
+            "$ref": "#/components/schemas/EnvTag"
+          },
+          "stream": {
+            "type": "boolean",
+            "description": "When true, the response uses application/x-ndjson and emits progress events."
+          }
+        },
+        "additionalProperties": false
+      },
+      "AudioRequest": {
+        "type": "object",
+        "required": [
+          "context",
+          "input"
+        ],
+        "properties": {
+          "context": {
+            "$ref": "#/components/schemas/MultiSingerContext"
+          },
+          "input": {
+            "$ref": "#/components/schemas/AudioInput"
+          },
+          "env_tag": {
+            "$ref": "#/components/schemas/EnvTag"
+          },
+          "stream": {
+            "type": "boolean",
+            "description": "When true, the response uses application/x-ndjson and emits progress events."
+          }
+        },
+        "additionalProperties": false
+      },
+      "SingleSingerContext": {
+        "type": "object",
+        "required": [
+          "arch",
+          "arch_extra",
+          "singer"
+        ],
+        "properties": {
+          "arch": {
+            "type": "string",
+            "description": "Architecture identifier."
+          },
+          "arch_extra": {
+            "description": "Architecture-specific JSON payload."
+          },
+          "singer": {
+            "$ref": "#/components/schemas/Singer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MultiSingerContext": {
+        "type": "object",
+        "required": [
+          "arch",
+          "arch_extra",
+          "singers"
+        ],
+        "properties": {
+          "arch": {
+            "type": "string",
+            "description": "Architecture identifier."
+          },
+          "arch_extra": {
+            "description": "Architecture-specific JSON payload."
+          },
+          "singers": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/Singer"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "Singer": {
+        "type": "object",
+        "required": [
+          "id",
+          "extra"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Singer identifier understood by the selected architecture."
+          },
+          "extra": {
+            "description": "Architecture-specific singer JSON payload."
+          }
+        },
+        "additionalProperties": false
+      },
+      "EnvTag": {
+        "type": "string",
+        "description": "Previously returned environment tag. If it matches the current environment tag, the service can return 204."
+      },
+      "ResponseEnvTag": {
+        "type": "string",
+        "description": "Environment tag for client-side cache validation. If this field is omitted or empty, the client should not cache the response."
+      },
+      "PronunciationInput": {
+        "type": "object",
+        "required": [
+          "notes"
+        ],
+        "properties": {
+          "notes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Lyric"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "Lyric": {
+        "type": "object",
+        "required": [
+          "lyric",
+          "language"
+        ],
+        "properties": {
+          "lyric": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PhonemeInput": {
+        "type": "object",
+        "required": [
+          "notes"
+        ],
+        "properties": {
+          "notes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PronunciationNote"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "PronunciationNote": {
+        "type": "object",
+        "required": [
+          "pronunciation",
+          "language"
+        ],
+        "properties": {
+          "pronunciation": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DurationInput": {
+        "type": "object",
+        "required": [
+          "piece_duration",
+          "notes",
+          "mix",
+          "mix_sample_rate"
+        ],
+        "properties": {
+          "piece_duration": {
+            "type": "number",
+            "minimum": 0
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DurationNote"
+            }
+          },
+          "mix": {
+            "$ref": "#/components/schemas/Mix"
+          },
+          "mix_sample_rate": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        },
+        "additionalProperties": false
+      },
+      "DurationNote": {
+        "type": "object",
+        "required": [
+          "position",
+          "cent",
+          "pronunciation",
+          "language",
+          "phonemes"
+        ],
+        "properties": {
+          "position": {
+            "$ref": "#/components/schemas/NotePosition"
+          },
+          "cent": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 12800
+          },
+          "pronunciation": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "phonemes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DurationInputPhoneme"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "NotePosition": {
+        "type": "object",
+        "required": [
+          "gap",
+          "duration"
+        ],
+        "properties": {
+          "gap": {
+            "type": "number",
+            "minimum": 0
+          },
+          "duration": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      },
+      "DurationInputPhoneme": {
+        "type": "object",
+        "required": [
+          "token",
+          "onset",
+          "language"
+        ],
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "onset": {
+            "type": "boolean"
+          },
+          "language": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ParameterInput": {
+        "type": "object",
+        "required": [
+          "piece_duration",
+          "notes",
+          "mix",
+          "mix_sample_rate",
+          "parameters"
+        ],
+        "properties": {
+          "piece_duration": {
+            "type": "number",
+            "minimum": 0
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ParameterNote"
+            }
+          },
+          "mix": {
+            "$ref": "#/components/schemas/Mix"
+          },
+          "mix_sample_rate": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/ParameterMap"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ParameterNote": {
+        "type": "object",
+        "required": [
+          "position",
+          "cent",
+          "pronunciation",
+          "language",
+          "phonemes"
+        ],
+        "properties": {
+          "position": {
+            "$ref": "#/components/schemas/NotePosition"
+          },
+          "cent": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 12800
+          },
+          "pronunciation": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "phonemes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ParameterInputPhoneme"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ParameterInputPhoneme": {
+        "type": "object",
+        "required": [
+          "token",
+          "onset",
+          "language",
+          "start"
+        ],
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "onset": {
+            "type": "boolean"
+          },
+          "language": {
+            "type": "string"
+          },
+          "start": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AudioInput": {
+        "type": "object",
+        "required": [
+          "piece_duration",
+          "notes",
+          "mix",
+          "mix_sample_rate",
+          "parameters"
+        ],
+        "properties": {
+          "piece_duration": {
+            "type": "number",
+            "minimum": 0
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ParameterNote"
+            }
+          },
+          "mix": {
+            "$ref": "#/components/schemas/Mix"
+          },
+          "mix_sample_rate": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/AudioParameterMap"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Mix": {
+        "type": "array",
+        "description": "Per-frame singer mix data. Each value must be in [0, 1]. Each row must contain exactly singers.length - 1 values, and the sum of values in each row must be less than or equal to 1.",
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      },
+      "ParameterMap": {
+        "type": "object",
+        "description": "Open string-keyed parameter map. Supported keys and semantic requirements are defined by the selected architecture.",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/Parameter"
+        }
+      },
+      "AudioParameterMap": {
+        "type": "object",
+        "description": "Open string-keyed audio parameter map. Supported keys and semantic requirements are defined by the selected architecture.",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/AudioParameter"
+        }
+      },
+      "Parameter": {
+        "type": "object",
+        "required": [
+          "values",
+          "sample_rate"
+        ],
+        "properties": {
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "sample_rate": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "retake": {
+            "$ref": "#/components/schemas/ParameterRetake"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AudioParameter": {
+        "type": "object",
+        "required": [
+          "sample_rate"
+        ],
+        "properties": {
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "sample_rate": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        },
+        "additionalProperties": false
+      },
+      "ParameterRetake": {
+        "type": "object",
+        "required": [
+          "position",
+          "length"
+        ],
+        "properties": {
+          "position": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "length": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      },
+      "PronunciationResponse": {
+        "type": "object",
+        "required": [
+          "state",
+          "output"
+        ],
+        "properties": {
+          "state": {
+            "const": "COMPLETE"
+          },
+          "output": {
+            "$ref": "#/components/schemas/PronunciationOutput"
+          },
+          "env_tag": {
+            "$ref": "#/components/schemas/ResponseEnvTag"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PronunciationOutput": {
+        "type": "object",
+        "required": [
+          "notes"
+        ],
+        "properties": {
+          "notes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Pronunciation"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "Pronunciation": {
+        "type": "object",
+        "required": [
+          "pronunciation",
+          "candidates"
+        ],
+        "properties": {
+          "pronunciation": {
+            "type": "string"
+          },
+          "candidates": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "PhonemeResponse": {
+        "type": "object",
+        "required": [
+          "state",
+          "output"
+        ],
+        "properties": {
+          "state": {
+            "const": "COMPLETE"
+          },
+          "output": {
+            "$ref": "#/components/schemas/PhonemeOutput"
+          },
+          "env_tag": {
+            "$ref": "#/components/schemas/ResponseEnvTag"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PhonemeOutput": {
+        "type": "object",
+        "required": [
+          "notes"
+        ],
+        "properties": {
+          "notes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PhonemeNote"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "PhonemeNote": {
+        "type": "object",
+        "required": [
+          "phonemes"
+        ],
+        "properties": {
+          "phonemes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Phoneme"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "Phoneme": {
+        "type": "object",
+        "required": [
+          "token",
+          "onset"
+        ],
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "onset": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DurationResponse": {
+        "type": "object",
+        "required": [
+          "state",
+          "output"
+        ],
+        "properties": {
+          "state": {
+            "const": "COMPLETE"
+          },
+          "output": {
+            "$ref": "#/components/schemas/DurationOutput"
+          },
+          "env_tag": {
+            "$ref": "#/components/schemas/ResponseEnvTag"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DurationOutput": {
+        "type": "object",
+        "required": [
+          "notes"
+        ],
+        "properties": {
+          "notes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DurationOutputNote"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "DurationOutputNote": {
+        "type": "object",
+        "required": [
+          "phonemes"
+        ],
+        "properties": {
+          "phonemes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DurationOutputPhoneme"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "DurationOutputPhoneme": {
+        "type": "object",
+        "required": [
+          "start"
+        ],
+        "properties": {
+          "start": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ParameterResponse": {
+        "type": "object",
+        "required": [
+          "state",
+          "output"
+        ],
+        "properties": {
+          "state": {
+            "const": "COMPLETE"
+          },
+          "output": {
+            "$ref": "#/components/schemas/ParameterOutput"
+          },
+          "env_tag": {
+            "$ref": "#/components/schemas/ResponseEnvTag"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ParameterOutput": {
+        "type": "object",
+        "required": [
+          "parameters"
+        ],
+        "properties": {
+          "parameters": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ParameterOutputParameter"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ParameterOutputParameter": {
+        "type": "object",
+        "required": [
+          "values",
+          "sample_rate"
+        ],
+        "properties": {
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "sample_rate": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        },
+        "additionalProperties": false
+      },
+      "AudioResponse": {
+        "type": "object",
+        "required": [
+          "state",
+          "output"
+        ],
+        "properties": {
+          "state": {
+            "const": "COMPLETE"
+          },
+          "output": {
+            "$ref": "#/components/schemas/AudioOutput"
+          },
+          "env_tag": {
+            "$ref": "#/components/schemas/ResponseEnvTag"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AudioOutput": {
+        "type": "object",
+        "required": [
+          "audio_url"
+        ],
+        "properties": {
+          "audio_url": {
+            "type": "string",
+            "description": "Encoded audio data URL."
+          }
+        },
+        "additionalProperties": false
+      },
+      "PronunciationStreamEvent": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/StreamStateEvent"
+          },
+          {
+            "$ref": "#/components/schemas/PronunciationResponse"
+          },
+          {
+            "$ref": "#/components/schemas/PronunciationAPIError"
+          }
+        ]
+      },
+      "PhonemeStreamEvent": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/StreamStateEvent"
+          },
+          {
+            "$ref": "#/components/schemas/PhonemeResponse"
+          },
+          {
+            "$ref": "#/components/schemas/PhonemeAPIError"
+          }
+        ]
+      },
+      "DurationStreamEvent": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/StreamStateEvent"
+          },
+          {
+            "$ref": "#/components/schemas/DurationResponse"
+          },
+          {
+            "$ref": "#/components/schemas/DurationAPIError"
+          }
+        ]
+      },
+      "ParameterStreamEvent": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/StreamStateEvent"
+          },
+          {
+            "$ref": "#/components/schemas/ParameterProcessingEvent"
+          },
+          {
+            "$ref": "#/components/schemas/ParameterResponse"
+          },
+          {
+            "$ref": "#/components/schemas/ParameterAPIError"
+          }
+        ]
+      },
+      "AudioStreamEvent": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/StreamStateEvent"
+          },
+          {
+            "$ref": "#/components/schemas/AudioResponse"
+          },
+          {
+            "$ref": "#/components/schemas/AudioAPIError"
+          }
+        ]
+      },
+      "StreamStateEvent": {
+        "type": "object",
+        "required": [
+          "state"
+        ],
+        "properties": {
+          "state": {
+            "enum": [
+              "QUEUING",
+              "PROCESSING"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "ParameterProcessingEvent": {
+        "type": "object",
+        "required": [
+          "state",
+          "output"
+        ],
+        "properties": {
+          "state": {
+            "const": "PROCESSING"
+          },
+          "output": {
+            "$ref": "#/components/schemas/ParameterOutput"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArchitectureNotFoundAPIError": {
+        "type": "object",
+        "required": [
+          "state",
+          "code",
+          "message"
+        ],
+        "properties": {
+          "state": {
+            "const": "ERROR"
+          },
+          "code": {
+            "$ref": "#/components/schemas/ArchitectureNotFoundErrorCode"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArchitectureOperationAPIError": {
+        "type": "object",
+        "required": [
+          "state",
+          "code",
+          "message"
+        ],
+        "properties": {
+          "state": {
+            "const": "ERROR"
+          },
+          "code": {
+            "$ref": "#/components/schemas/ArchitectureOperationErrorCode"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SingerNotFoundAPIError": {
+        "type": "object",
+        "required": [
+          "state",
+          "code",
+          "message"
+        ],
+        "properties": {
+          "state": {
+            "const": "ERROR"
+          },
+          "code": {
+            "$ref": "#/components/schemas/SingerNotFoundErrorCode"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SingerOperationAPIError": {
+        "type": "object",
+        "required": [
+          "state",
+          "code",
+          "message"
+        ],
+        "properties": {
+          "state": {
+            "const": "ERROR"
+          },
+          "code": {
+            "$ref": "#/components/schemas/SingerOperationErrorCode"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BadRequestError": {
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PronunciationAPIError": {
+        "type": "object",
+        "required": [
+          "state",
+          "code",
+          "message"
+        ],
+        "properties": {
+          "state": {
+            "const": "ERROR"
+          },
+          "code": {
+            "$ref": "#/components/schemas/PronunciationErrorCode"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PhonemeAPIError": {
+        "type": "object",
+        "required": [
+          "state",
+          "code",
+          "message"
+        ],
+        "properties": {
+          "state": {
+            "const": "ERROR"
+          },
+          "code": {
+            "$ref": "#/components/schemas/PhonemeErrorCode"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DurationAPIError": {
+        "type": "object",
+        "required": [
+          "state",
+          "code",
+          "message"
+        ],
+        "properties": {
+          "state": {
+            "const": "ERROR"
+          },
+          "code": {
+            "$ref": "#/components/schemas/DurationErrorCode"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ParameterAPIError": {
+        "type": "object",
+        "required": [
+          "state",
+          "code",
+          "message"
+        ],
+        "properties": {
+          "state": {
+            "const": "ERROR"
+          },
+          "code": {
+            "$ref": "#/components/schemas/ParameterErrorCode"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AudioAPIError": {
+        "type": "object",
+        "required": [
+          "state",
+          "code",
+          "message"
+        ],
+        "properties": {
+          "state": {
+            "const": "ERROR"
+          },
+          "code": {
+            "$ref": "#/components/schemas/AudioErrorCode"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArchitectureNotFoundErrorCode": {
+        "type": "string",
+        "enum": [
+          "UNKNOWN_ARCH"
+        ]
+      },
+      "ArchitectureOperationErrorCode": {
+        "type": "string",
+        "enum": [
+          "INTERNAL_ERROR"
+        ]
+      },
+      "SingerNotFoundErrorCode": {
+        "type": "string",
+        "enum": [
+          "UNKNOWN_ARCH",
+          "SINGER_NOT_EXIST"
+        ]
+      },
+      "SingerOperationErrorCode": {
+        "type": "string",
+        "enum": [
+          "INTERNAL_ERROR"
+        ]
+      },
+      "PronunciationErrorCode": {
+        "type": "string",
+        "enum": [
+          "INTERNAL_ERROR",
+          "UNKNOWN_ARCH",
+          "SINGER_NOT_EXIST",
+          "SINGER_CONFIG_INVALID"
+        ]
+      },
+      "PhonemeErrorCode": {
+        "type": "string",
+        "enum": [
+          "INTERNAL_ERROR",
+          "UNKNOWN_ARCH",
+          "SINGER_NOT_EXIST",
+          "SINGER_CONFIG_INVALID"
+        ]
+      },
+      "DurationErrorCode": {
+        "type": "string",
+        "enum": [
+          "INTERNAL_ERROR",
+          "UNKNOWN_ARCH",
+          "SINGER_NOT_EXIST",
+          "SINGER_CONFIG_INVALID",
+          "SINGERS_UNMIXABLE"
+        ]
+      },
+      "ParameterErrorCode": {
+        "type": "string",
+        "enum": [
+          "INTERNAL_ERROR",
+          "UNKNOWN_ARCH",
+          "SINGER_NOT_EXIST",
+          "SINGER_CONFIG_INVALID",
+          "INVALID_PARAMETER",
+          "SINGERS_UNMIXABLE"
+        ]
+      },
+      "AudioErrorCode": {
+        "type": "string",
+        "enum": [
+          "INTERNAL_ERROR",
+          "UNKNOWN_ARCH",
+          "SINGER_NOT_EXIST",
+          "SINGER_CONFIG_INVALID",
+          "INVALID_PARAMETER",
+          "SINGERS_UNMIXABLE"
+        ]
+      },
+      "ErrorCode": {
+        "type": "string",
+        "enum": [
+          "INTERNAL_ERROR",
+          "UNKNOWN_ARCH",
+          "SINGER_NOT_EXIST",
+          "SINGER_CONFIG_INVALID",
+          "INVALID_PARAMETER",
+          "SINGERS_UNMIXABLE"
+        ]
+      }
+    }
+  }
+}

@@ -53,7 +53,7 @@ func PostPhoneme(c *gin.Context) {
 	var request phonemeRequest
 	if err := decodeRequest(c, &request); err != nil {
 		phonemeLogger.Error("Invalid phoneme request", slog.Any("error", err))
-		writeBadRequest(c)
+		writeBadRequest(c, err)
 		return
 	}
 
