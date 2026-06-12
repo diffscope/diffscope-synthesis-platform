@@ -19,13 +19,32 @@
 package diffsinger
 
 import (
+	"crypto/sha512"
+	"encoding/hex"
 	"encoding/json"
+	"sort"
 
 	"diffscope-synthesis-platform/internal/api"
+	"diffscope-synthesis-platform/internal/appinfo"
 )
 
 func (Architecture) GetEnvTag(archExtra json.RawMessage, singers []api.Singer) string {
 	_ = archExtra
-	_ = singers
-	return "0"
+	h := sha512.New()
+	h.Write([]byte(appinfo.ApplicationSemver))
+	h.Write([]byte{0})
+	sortedSingerIDs := make([]string, len(singers))
+	for i, singer := range singers {
+		sortedSingerIDs[i] = singer.ID
+	}
+	sort.Strings(sortedSingerIDs)
+	for _, id := range sortedSingerIDs {
+		_, singer, err := getSingerByAPIID(id)
+		if err != nil {
+			continue
+		}
+		h.Write([]byte(singer.PackageHash))
+		h.Write([]byte{0})
+	}
+	return hex.EncodeToString(h.Sum(nil))
 }
