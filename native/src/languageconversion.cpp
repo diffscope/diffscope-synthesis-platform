@@ -72,11 +72,7 @@ namespace dssp {
 		}
 
 		std::filesystem::path getPackagesRootDirectory() {
-#if defined(__APPLE__)
-			return stdc::system::application_directory().parent_path() / _TSTR("Resources/G2pPackages");
-#else
 			return stdc::system::application_directory().parent_path() / _TSTR("share/G2pPackages");
-#endif
 		}
 
 		LangCore::ExecutionProvider parseExecutionProvider(DSSP_ExecutionProvider ep) {

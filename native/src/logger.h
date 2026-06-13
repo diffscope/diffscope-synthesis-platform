@@ -39,22 +39,22 @@ namespace dssp {
 
 		template<typename... Args>
 		void debugF(const std::string_view format, Args&&... args) const {
-			debug(std::vformat(format, std::make_format_args(std::forward<Args>(args)...)));
+			debug(std::vformat(format, std::make_format_args(args...)));
 		}
 
 		template<typename... Args>
 		void infoF(const std::string_view format, Args&&... args) const {
-			info(std::vformat(format, std::make_format_args(std::forward<Args>(args)...)));
+			info(std::vformat(format, std::make_format_args(args...)));
 		}
 
 		template<typename... Args>
 		void warnF(const std::string_view format, Args&&... args) const {
-			warn(std::vformat(format, std::make_format_args(std::forward<Args>(args)...)));
+			warn(std::vformat(format, std::make_format_args(args...)));
 		}
 
 		template<typename... Args>
 		void errorF(const std::string_view format, Args&&... args) const {
-			error(std::vformat(format, std::make_format_args(std::forward<Args>(args)...)));
+			error(std::vformat(format, std::make_format_args(args...)));
 		}
 
 	private:
